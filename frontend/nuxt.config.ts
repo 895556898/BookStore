@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     '@nuxt/icon',
     '@nuxt/ui',
     '@nuxt/content',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@element-plus/nuxt'
   ],
 
   elementPlus: {
