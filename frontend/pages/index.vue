@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import {Reading, Search, ShoppingCart} from "@element-plus/icons-vue";
+import {Search, ShoppingCart} from "@element-plus/icons-vue";
 import 'public/logo.png'
 
 const searchKey = ref('')

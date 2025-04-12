@@ -17,6 +17,7 @@ export default defineNuxtConfig({
 
   elementPlus: {
     importStyle: 'scss',  // 推荐使用SCSS自定义主题
-    themes: ['dark']      // 可选暗黑主题
+    // themes: ['dark']      // 可选暗黑主题
+    // directives: PresetDirectives,
   },
 })

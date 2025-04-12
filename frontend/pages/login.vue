@@ -50,15 +50,14 @@
         </el-form-item>
 
         <!-- 登录按钮 -->
-        <el-form-item>
-          <el-button
-              type="primary"
-              @click="handleLogin"
-              class="login-btn"
-          >
-            立即登录
-          </el-button>
-        </el-form-item>
+        <el-button
+            type="primary"
+            @click="handleLogin"
+            class="login-btn"
+            :loading="loading"
+        >
+          立即登录
+        </el-button>
       </el-form>
 
       <!-- 注册链接 -->
@@ -74,6 +73,7 @@
       </div>
     </el-card>
   </div>
+
   <el-dialog
       v-model="errorDialogVisible"
       title="错误提示"
@@ -88,8 +88,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Shop, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { Shop, User } from '@element-plus/icons-vue'
 
 const errorDialogVisible = ref(false)
 const errorMessage = ref('')
@@ -114,48 +114,6 @@ const userTypeOptions = ref([
     label: '用户'
   }
 ])
-
-// 登录处理
-const handleLogin = async () => {
-  try {
-    // 1. 表单验证
-    const valid = await loginFormRef.value.validate()
-    if (!valid) return
-
-    loading.value = true
-
-    // 2. 发送登录请求
-    const { data: res } = await useFetch('/api/login', {
-      method: 'POST',
-      body: loginForm.value
-    })
-
-    // 3. 处理响应
-    if (res.value.success) {
-      ElMessage.success('登录成功')
-      // 跳转到主页并传递用户信息
-      navigateTo({
-        path: '/',
-        query: {
-          username: loginForm.value.username,
-          userType: loginForm.value.userType
-        }
-      })
-    } else {
-      showError(res.value.message || '用户名或密码错误')
-    }
-  } catch (err) {
-    // 处理网络错误
-    showError(err.response?.data?.message || '请求失败，请检查网络')
-  } finally {
-    loading.value = false
-  }
-}
-
-const showError = (msg) => {
-  errorMessage.value = msg
-  errorDialogVisible.value = true
-}
 
 // 修改验证规则增强
 const loginRules = ref({
@@ -199,6 +157,50 @@ const loginRules = ref({
   ]
 })
 
+// 登录处理
+const handleLogin = async () => {
+  try {
+    // 1. 表单验证
+    const valid = await loginFormRef.value.validate()
+    if (!valid) return
+
+    loading.value = true
+
+    // 2. 发送登录请求
+    const { data: res } = await useFetch('/api/login', {
+      method: 'POST',
+      body: loginForm.value
+    })
+
+    // 3. 处理响应
+    if (res.value.success) {
+      ElMessage.success('登录成功')
+      // 跳转到主页并传递用户信息
+      navigateTo({
+        path: '/',
+        query: {
+          username: loginForm.value.username,
+          userType: loginForm.value.userType
+        }
+      })
+    } else {
+      showError(res.value.message || '用户名或密码错误')
+    }
+  } catch (err) {
+    // 处理网络错误
+    showError(err.response?.data?.message || '请求失败，请检查网络')
+  } finally {
+    loading.value = false
+  }
+}
+
+
+// 新增错误处理函数
+const showError = (msg) => {
+  errorMessage.value = msg
+  errorDialogVisible.value = true
+}
+
 // 路由跳转
 const navigateTo = useRouter().push
 </script>
@@ -241,6 +243,18 @@ const navigateTo = useRouter().push
   }
 }
 
+// 调整级联选择器样式
+:deep(.el-cascader) {
+  width: 100%;
+
+  .el-input__inner {
+    height: 40px;
+  }
+
+  .el-icon-arrow-down {
+    display: none;  // 隐藏下拉箭头
+  }
+}
 .user-type-group {
   width: 100%;
 
