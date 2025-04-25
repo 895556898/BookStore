@@ -32,3 +32,56 @@ public class UserController {
 
 
 }
+
+//@PostMapping("/register")
+//public ResponseEntity<ApiResponse<LoginResultVO>> register(
+//        @Valid @RequestBody UserDTO dto,
+//        BindingResult bindingResult, // 参数验证结果
+//        HttpServletResponse response) {
+//
+//    // 参数校验
+//    if (bindingResult.hasErrors()) {
+//        String errorMsg = bindingResult.getFieldErrors()
+//                .stream()
+//                .map(FieldError::getDefaultMessage)
+//                .collect(Collectors.joining(", "));
+//        return ResponseEntity.badRequest()
+//                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), errorMsg));
+//    }
+//
+//    try {
+//        // 注册逻辑
+//        User user = userService.register(dto);
+//
+//        // 生成JWT令牌（替代SessionID）
+//        String token = jwtTokenProvider.generateToken(user.getUsername());
+//
+//        // 设置响应头和安全Cookie
+//        response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+//        ResponseCookie cookie = ResponseCookie.from("token", token)
+//                .httpOnly(true)
+//                .secure(true)
+//                .path("/")
+//                .maxAge(Duration.ofDays(7))
+//                .sameSite("Strict")
+//                .build();
+//        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+//
+//        // 构建响应
+//        LoginResultVO result = new LoginResultVO(
+//                "ok",
+//                "注册成功",
+//                token);
+//
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(ApiResponse.success(result));
+//
+//    } catch (DuplicateUserException e) {
+//        return ResponseEntity.status(HttpStatus.CONFLICT)
+//                .body(ApiResponse.error(HttpStatus.CONFLICT.value(), "用户名已存在"));
+//    } catch (Exception e) {
+//        log.error("注册失败: {}", e.getMessage());
+//        return ResponseEntity.internalServerError()
+//                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "系统错误"));
+//    }
+//}
