@@ -6,9 +6,19 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.36/5a30490a6e14977d97d9c73c924c1f1b5311ea95/lombok-1.18.36.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.mybatis-flex/mybatis-flex-processor/1.10.9/5406a2e5721ce07d1eab22397adc0ee937e478e0/mybatis-flex-processor-1.10.9.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.mybatis-flex/mybatis-flex-annotation/1.10.9/5bec2d1dc26ff2b05bab032a8c114c50674515eb/mybatis-flex-annotation-1.10.9.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.mybatis/mybatis/3.5.19/79b20d963e38e66f41431ea49bc22f7cce718142/mybatis-3.5.19.jar" />
         </processorPath>
         <module name="backend.main" />
       </profile>
     </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="backend" options="-parameters" />
+      <module name="backend.main" options="-parameters" />
+      <module name="backend.test" options="-parameters" />
+    </option>
   </component>
 </project>
