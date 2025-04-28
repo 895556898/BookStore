@@ -5,7 +5,10 @@ import lombok.Getter;
 @Getter
 public enum StatusCode {
     REGISTER_SUCCESS(10000, "注册成功", "ok"),
-    REGISTER_USERNAME_DUPLICATE(10001, "注册失败，用户已存在", "error"),
+    REGISTER_USERNAME_EXIST(10001, "注册失败，用户已存在", "error"),
+    REGISTER_PHONE_EXIST(10002, "注册失败，手机号已存在", "error"),
+    LOGIN_SUCCESS(20000, "登录成功", "ok"),
+    LOGIN_FAIL(20001, "登录失败，用户名或密码错误", "error"),
     ;
 
 
