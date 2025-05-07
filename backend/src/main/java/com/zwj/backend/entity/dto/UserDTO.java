@@ -15,6 +15,8 @@ public class UserDTO {
     }
 
     public UserDTO() {
-
+        username = "test";
+        password = "123456";
+        phone = "11111111111";
     }
 }

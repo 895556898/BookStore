@@ -9,7 +9,11 @@ public enum StatusCode {
     REGISTER_PHONE_EXIST(10002, "注册失败，手机号已存在", "error"),
     LOGIN_SUCCESS(20000, "登录成功", "ok"),
     LOGIN_FAIL(20001, "登录失败，用户名或密码错误", "error"),
-    ;
+    LOGGED_IN(20002, "已登录", "ok"), 
+    USER_NOT_EXIST(20003, "用户不存在", "error"),
+    LOGOUT_FAIL(20004, "未登录", "error"),
+    LOGOUT_SUCCESS(20005, "登出成功", "ok");
+
 
 
     final int code;
