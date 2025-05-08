@@ -4,6 +4,7 @@ import com.mybatisflex.core.MybatisFlexBootstrap;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.User;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,7 +20,10 @@ import java.util.List;
 
 @Service
 public class UserService implements UserDetailsService {
-    UserMapper userMapper = MybatisFlexBootstrap.getInstance().getMapper(UserMapper.class);
+//    UserMapper userMapper = MybatisFlexBootstrap.getInstance().getMapper(UserMapper.class);
+
+    @Resource
+    private UserMapper userMapper;
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;

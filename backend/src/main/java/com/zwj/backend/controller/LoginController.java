@@ -2,6 +2,7 @@ package com.zwj.backend.controller;
 
 import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.service.UserService;
+import com.zwj.backend.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.context.annotation.Scope;
@@ -22,28 +23,58 @@ public class LoginController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final SessionService sessionService;
 
-    public LoginController (UserService userService, PasswordEncoder passwordEncoder) {
+    public LoginController(UserService userService, PasswordEncoder passwordEncoder, SessionService sessionService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+        this.sessionService = sessionService;
     }
 
     @PostMapping("/login")
     public StatusCode login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) throws Exception {
+        // 检查用户是否已经登录
+        if (sessionService.isUserLoggedIn(username)) {
+            // 获取之前的sessionId
+            String oldSessionId = sessionService.getSessionId(username);
+            // 使之前的session失效
+            HttpSession oldSession = request.getSession(false);
+            if (oldSession != null && oldSession.getId().equals(oldSessionId)) {
+                oldSession.invalidate();
+            }
+        }
+
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(username, password);
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(passwordEncoder);
         daoAuthenticationProvider.setUserDetailsService(userService);
-        Authentication authenticate = daoAuthenticationProvider.authenticate(usernamePasswordAuthenticationToken);//默认的authenticate
-        SecurityContextHolder.getContext().setAuthentication(authenticate);//设置上下文 也就是把用户session放入上下文
-        request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());//设置session
-        SecurityContextHolder.clearContext();//清除上下文
+        Authentication authenticate = daoAuthenticationProvider.authenticate(usernamePasswordAuthenticationToken);
+        
+        SecurityContextHolder.getContext().setAuthentication(authenticate);
+        HttpSession session = request.getSession();
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+        
+        // 保存新的session信息
+        sessionService.addSession(username, session.getId());
+        
+        SecurityContextHolder.clearContext();
         return userService.getUserByUsername(username);
     }
 
     @PostMapping("/logout")
-    public StatusCode logout(HttpServletRequest request){
+    public StatusCode logout(HttpServletRequest request) {
         HttpSession session = request.getSession();
-        if(session.getAttribute("SPRING_SECURITY_CONTEXT") == null) return StatusCode.LOGOUT_FAIL;
+        if (session.getAttribute("SPRING_SECURITY_CONTEXT") == null) {
+            return StatusCode.LOGOUT_FAIL;
+        }
+        
+        // 从session中获取用户名
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            String username = auth.getName();
+            // 移除session记录
+            sessionService.removeSession(username);
+        }
+        
         session.invalidate();
         return StatusCode.LOGOUT_SUCCESS;
     }

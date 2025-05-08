@@ -41,7 +41,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mockito:mockito-core' // 移至测试作用域
 
-    implementation 'com.mybatis-flex:mybatis-flex-spring-boot-starter:1.10.9'
+    implementation 'com.mybatis-flex:mybatis-flex-spring-boot3-starter:1.10.9'
     annotationProcessor 'com.mybatis-flex:mybatis-flex-processor:1.10.9'
 
     // 若仍需手动引入Jakarta Validation
