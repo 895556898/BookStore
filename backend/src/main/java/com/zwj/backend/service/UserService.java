@@ -1,6 +1,5 @@
 package com.zwj.backend.service;
 
-import com.mybatisflex.core.MybatisFlexBootstrap;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.User;
@@ -27,9 +26,6 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
-    @Autowired
-    private DefaultErrorAttributes defaultErrorAttributes;
-
 
     //注册
     public StatusCode register(String username, String password, String phone) {
@@ -49,25 +45,6 @@ public class UserService implements UserDetailsService {
         user.setRole("user");
         userMapper.insert(user);
         return StatusCode.REGISTER_SUCCESS;
-    }
-
-    //登录(先判断用户名再判断手机号)
-    public StatusCode Login(String textA, String password) {
-        String username = textA;
-        User user = userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));
-        if(user == null) {
-            String phone = textA;
-            user = userMapper.selectOneByQuery(new QueryWrapper().eq("phone", phone));
-            if(user == null) {
-                return StatusCode.LOGIN_FAIL;
-            }
-        }
-
-        if (passwordEncoder.matches(password, user.getPassword())) {
-            return StatusCode.LOGIN_SUCCESS;
-        } else {
-            return StatusCode.LOGIN_FAIL;
-        }
     }
 
     @Override
@@ -90,14 +67,6 @@ public class UserService implements UserDetailsService {
 
     }
 
-//    public StatusCode findUser(String username) {
-//        User user = userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));
-//    }
-//
-//    public CurrentUserVO getCurrentUser(String username) {
-//        User user = userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));
-//        return new CurrentUserVO(user.getUsername(), user.getAvatar(), user.getId(), user.getEmail());
-//    }
 
     public StatusCode getUserByUsername(String username) {
         User user = userMapper.selectOneByQuery(new QueryWrapper().eq("username",username));
