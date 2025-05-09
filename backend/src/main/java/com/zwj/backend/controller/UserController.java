@@ -2,7 +2,7 @@ package com.zwj.backend.controller;
 
 import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.dto.RegisterRequest;
-import com.zwj.backend.service.UserService;
+import com.zwj.backend.service.Impl.UserService;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;

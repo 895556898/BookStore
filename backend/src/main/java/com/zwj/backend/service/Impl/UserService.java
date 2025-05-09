@@ -1,4 +1,4 @@
-package com.zwj.backend.service;
+package com.zwj.backend.service.Impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zwj.backend.common.StatusCode;

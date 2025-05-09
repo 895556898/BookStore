@@ -12,7 +12,17 @@ public enum StatusCode {
     LOGGED_IN(20002, "已登录", "ok"), 
     USER_NOT_EXIST(20003, "用户不存在", "error"),
     LOGOUT_FAIL(20004, "未登录", "error"),
-    LOGOUT_SUCCESS(20005, "登出成功", "ok");
+    LOGOUT_SUCCESS(20005, "登出成功", "ok"),
+    BOOK_GET_SUCCESS(30000, "书籍查找成功", "ok"),
+    BOOK_GET_FAIL(30001,"书籍不存在","error"),
+    BOOK_ADD_SUCCESS(30002, "书籍添加成功", "ok"),
+    BOOK_ADD_FAIL(30003, "书籍添加失败", "error"),
+    BOOK_UPDATE_SUCCESS(30004, "书籍更新成功", "ok"),
+    BOOK_UPDATE_FAIL(30003, "书籍更新失败", "error"),
+    BOOK_DELETE_SUCCESS(30003, "书籍删除成功", "ok"),
+    BOOK_DELETE_FAIL(30003, "书籍删除失败", "error"),
+
+    ;
 
 
 

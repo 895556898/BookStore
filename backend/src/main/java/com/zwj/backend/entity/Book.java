@@ -1,22 +1,61 @@
 package com.zwj.backend.entity;
 
+import com.mybatisflex.annotation.Table;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
-@Table(name = "book")
+@Builder
+@Table(value = "book")
 public class Book {
     @Id
-    private long id;
-    private String name;
-    private String writer;
-    private BigDecimal price;           //书本售价
-    private BigDecimal cost;            //书本成本
-    private int stock;                  //库存
-    private String sort;                //分类
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String title;        // 书名
+    private String writer;      // 作者
+    private String isbn;        // ISBN号
+    private String cover;       // 封面图片URL
+    private BigDecimal price;   // 售价
+    private BigDecimal cost;    // 成本
+    private Integer stock;      // 库存
+    private List<Tag> tag;      // 分类
+    private String  createdBy;  // 创建者
+    private int sales;          // 销量
+
+    public Book() {
+        title = "";
+        writer = "";
+        isbn = "";
+        cover = "";
+        price = new BigDecimal(0);
+        cost = new BigDecimal(0);
+        stock = 0;
+        tag = new ArrayList<>();
+        createdBy = "";
+        sales = 0;
+    }
+
+    public Book(Long id, String title, String writer, String isbn, String cover, BigDecimal price, BigDecimal cost, Integer stock, List<Tag> tag, String status, String createdBy, int sales) {
+        this.id = id;
+        this.title = title;
+        this.writer = writer;
+        this.isbn = isbn;
+        this.cover = cover;
+        this.price = price;
+        this.cost = cost;
+        this.stock = stock;
+        this.tag = tag;
+        this.createdBy = createdBy;
+        this.sales = sales;
+    }
 }
