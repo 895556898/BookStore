@@ -15,14 +15,13 @@ import com.mybatisflex.core.query.QueryWrapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.BookTableDef.BOOK;
+import static com.zwj.backend.entity.table.TagTableDef.TAG;
 
 @Service
 public class BookServiceImpl implements BookService {
@@ -114,30 +113,50 @@ public class BookServiceImpl implements BookService {
         return Result.success(bookPage);
     }
 
+    //添加图书
     @Override
     @Transactional
     public StatusCode createBook(Book book) {
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
-        
+
         // 先保存图书，获取生成的ID
         Db.tx(() -> {
             affectedRows1.set(bookMapper.insert(book));
             return affectedRows1.get() > 0;
         });
-        
-        // 获取插入后的ID（MyBatis-Flex会自动将生成的ID设置回实体对象）
-        Long bookId = book.getId();
-        
+
+        // 获取插入后的ID
+        Long bookId = (bookMapper.selectOneByQuery(QueryWrapper.create()
+                .where(BOOK.TITLE.eq(book.getTitle())))).getId();
+        System.out.println(bookId);
+
         if (affectedRows1.get() > 0 && book.getTag() != null && !book.getTag().isEmpty()) {
             // 保存标签关联
             for (Tag tag : book.getTag()) {
+                Tag existingTag = null;
+
+                if (tag.getName() != null && !tag.getName().isEmpty()) {
+                    // 按名称查找现有标签
+                    existingTag = tagMapper.selectOneByQuery(QueryWrapper.create()
+                            .where(TAG.NAME.eq(tag.getName())));
+                }
+
+                if (existingTag == null) {
+                        if (tag.getName() == null || tag.getName().isEmpty()) {
+                            continue; // 跳过无效的tag
+                        }
+                    tagMapper.insert(tag);
+                    existingTag = tag; // 使用插入后的对象
+                }
+
+                // 插入中间表关联
                 BookTag bookTag = new BookTag();
                 bookTag.setBid(bookId);
-                bookTag.setTid(tag.getId());
+                bookTag.setTid(existingTag.getId());
                 bookTagMapper.insert(bookTag);
             }
             return StatusCode.BOOK_ADD_SUCCESS;
-        } else if (affectedRows1.get() > 0) {
+        } else if (affectedRows1.get() > 0 && book.getTag() == null) {
             return StatusCode.BOOK_ADD_SUCCESS;
         } else {
             return StatusCode.BOOK_ADD_FAIL;
@@ -148,30 +167,30 @@ public class BookServiceImpl implements BookService {
     @Override
     public StatusCode updateBook(String title, Book newBook) {
         final Book[] oldBookRef = new Book[1];
-        
+
         // 先尝试通过ID查找
         oldBookRef[0] = bookMapper.selectOneById(newBook.getId());
-        
+
         // 如果按ID找不到，尝试按标题查找
         if (oldBookRef[0] == null) {
             QueryWrapper queryWrapper = QueryWrapper.create()
-                .where(BOOK.TITLE.eq(title));
+                    .where(BOOK.TITLE.eq(title));
             oldBookRef[0] = bookMapper.selectOneByQuery(queryWrapper);
-            
+
             if (oldBookRef[0] == null) {
                 return StatusCode.BOOK_UPDATE_FAIL;
             }
         }
-        
+
         final Long bookId = oldBookRef[0].getId();
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
-        
+
         Db.tx(() -> {
             newBook.setId(bookId);
             affectedRows1.set(bookMapper.update(newBook));
             return affectedRows1.get() > 0;
         });
-        
+
         if (affectedRows1.get() > 0 && newBook.getTag() != null) {
             // 删除旧关联，使用正确的字段名
             bookTagMapper.deleteByQuery(
@@ -198,13 +217,13 @@ public class BookServiceImpl implements BookService {
         // 使用正确的字段名删除关联
         bookTagMapper.deleteByQuery(
                 QueryWrapper.create().where("bid = ?", id));
-                
+
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
         Db.tx(() -> {
             affectedRows1.set(bookMapper.deleteById(id));
             return affectedRows1.get() > 0;
         });
-        
+
         if (affectedRows1.get() > 0) {
             return StatusCode.BOOK_DELETE_SUCCESS;
         } else {

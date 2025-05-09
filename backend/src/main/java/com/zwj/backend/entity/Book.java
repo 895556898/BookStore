@@ -34,7 +34,7 @@ public class Book {
     private Integer stock;      // 库存
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "book_tags",
+        name = "book_tag",
         joinColumns = @JoinColumn(name = "bid"),
         inverseJoinColumns = @JoinColumn(name = "tid")
     )
