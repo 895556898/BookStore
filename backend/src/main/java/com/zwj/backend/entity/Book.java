@@ -7,6 +7,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Builder;
 import lombok.Data;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -28,6 +32,12 @@ public class Book {
     private BigDecimal price;   // 售价
     private BigDecimal cost;    // 成本
     private Integer stock;      // 库存
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "book_tags",
+        joinColumns = @JoinColumn(name = "bid"),
+        inverseJoinColumns = @JoinColumn(name = "tid")
+    )
     private List<Tag> tag;      // 分类
     private String  createdBy;  // 创建者
     private int sales;          // 销量
@@ -45,7 +55,7 @@ public class Book {
         sales = 0;
     }
 
-    public Book(Long id, String title, String writer, String isbn, String cover, BigDecimal price, BigDecimal cost, Integer stock, List<Tag> tag, String status, String createdBy, int sales) {
+    public Book(Long id, String title, String writer, String isbn, String cover, BigDecimal price, BigDecimal cost, Integer stock, List<Tag> tag, String createdBy, int sales) {
         this.id = id;
         this.title = title;
         this.writer = writer;

@@ -6,4 +6,5 @@ import com.zwj.backend.entity.Book;
 
 @Mapper
 public interface BookMapper extends BaseMapper<Book> {
+    Book selectOneByTitle(String title);
 }

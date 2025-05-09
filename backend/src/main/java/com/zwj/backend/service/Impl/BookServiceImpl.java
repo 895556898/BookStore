@@ -54,7 +54,7 @@ public class BookServiceImpl implements BookService {
     public List<Tag> getTagsByBookId(Long bookId) {
 
         List<BookTag> bookTags = bookTagMapper.selectListByQuery(
-                QueryWrapper.create().where("book_id = ?", bookId));
+                QueryWrapper.create().where("bid = ?", bookId));
         if (bookTags == null || bookTags.isEmpty()) {
             return Collections.emptyList();
         }
@@ -69,7 +69,7 @@ public class BookServiceImpl implements BookService {
     // return bookMapper.paginate(pageNum, pageSize);
     // }
 
-    //关键字查询图书
+    // 关键字查询图书
     @Override
     public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword) {
         QueryWrapper queryWrapper = QueryWrapper.create();
@@ -87,16 +87,15 @@ public class BookServiceImpl implements BookService {
         return Result.success(bookPage);
     }
 
-    //标签查询图书
+    // 标签查询图书
     @Override
     public Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids) {
         if (tids == null || tids.isEmpty()) {
-            return searchBooks(pageNum, pageSize, "");              // 空标签，返回全部图书分页
+            return searchBooks(pageNum, pageSize, ""); // 空标签，返回全部图书分页
         }
 
         List<BookTag> bookTags = bookTagMapper.selectListByQuery(
-            QueryWrapper.create().where("tid in (?)", tids)
-        );
+                QueryWrapper.create().where("tid in (?)", tids));
 
         if (bookTags == null || bookTags.isEmpty()) {
             return Result.success(new Page<>(pageNum, pageSize, 0));
@@ -104,11 +103,11 @@ public class BookServiceImpl implements BookService {
         List<Long> bookIds = bookTags.stream().map(BookTag::getBid).distinct().collect(Collectors.toList());
 
         QueryWrapper queryWrapper = QueryWrapper.create()
-            .where("id in (?)", bookIds)
-            .orderBy("id asc");
+                .where("id in (?)", bookIds)
+                .orderBy("id asc");
         Page<Book> bookPage = bookMapper.paginate(pageNum, pageSize, queryWrapper);
 
-        for (Book book : bookPage.getRecords()) {                           //加载标签
+        for (Book book : bookPage.getRecords()) { // 加载标签
             book.setTag(getTagsByBookId(book.getId()));
         }
 
@@ -118,12 +117,27 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public StatusCode createBook(Book book) {
-        AtomicInteger affectedRows1 = new AtomicInteger();           //商品表中受影响的行数
+        AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
+        
+        // 先保存图书，获取生成的ID
         Db.tx(() -> {
             affectedRows1.set(bookMapper.insert(book));
             return affectedRows1.get() > 0;
         });
-        if (affectedRows1.get() > 0){
+        
+        // 获取插入后的ID（MyBatis-Flex会自动将生成的ID设置回实体对象）
+        Long bookId = book.getId();
+        
+        if (affectedRows1.get() > 0 && book.getTag() != null && !book.getTag().isEmpty()) {
+            // 保存标签关联
+            for (Tag tag : book.getTag()) {
+                BookTag bookTag = new BookTag();
+                bookTag.setBid(bookId);
+                bookTag.setTid(tag.getId());
+                bookTagMapper.insert(bookTag);
+            }
+            return StatusCode.BOOK_ADD_SUCCESS;
+        } else if (affectedRows1.get() > 0) {
             return StatusCode.BOOK_ADD_SUCCESS;
         } else {
             return StatusCode.BOOK_ADD_FAIL;
@@ -132,29 +146,46 @@ public class BookServiceImpl implements BookService {
 
     @Transactional
     @Override
-    public StatusCode updateBook(long id, Book newBook) {
-        Book oldBook = bookMapper.selectOneById(id);
-        if (oldBook == null) {
-            return StatusCode.BOOK_UPDATE_FAIL;
+    public StatusCode updateBook(String title, Book newBook) {
+        final Book[] oldBookRef = new Book[1];
+        
+        // 先尝试通过ID查找
+        oldBookRef[0] = bookMapper.selectOneById(newBook.getId());
+        
+        // 如果按ID找不到，尝试按标题查找
+        if (oldBookRef[0] == null) {
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                .where(BOOK.TITLE.eq(title));
+            oldBookRef[0] = bookMapper.selectOneByQuery(queryWrapper);
+            
+            if (oldBookRef[0] == null) {
+                return StatusCode.BOOK_UPDATE_FAIL;
+            }
         }
-//        oldBook.setTitle(newBook.getTitle());
-//        oldBook.setWriter(newBook.getWriter());
-//        oldBook.setPublisher(newBook.getPublisher());
-//        oldBook.setIsbn(newBook.getIsbn());
-//        oldBook.setCover(newBook.getCover());
-//        oldBook.setPrice(newBook.getPrice());
-//        oldBook.setCost(newBook.getCost());
-//        oldBook.setStock(newBook.getStock());
-//        oldBook.setTag(newBook.getTag()); // 如果 tag 是 List<Tag> 类型
-//        oldBook.setStatus(newBook.getStatus());
-//        oldBook.setCreatedBy(newBook.getCreatedBy());
-
-        AtomicInteger affectedRows1 = new AtomicInteger();           //商品表中受影响的行数
+        
+        final Long bookId = oldBookRef[0].getId();
+        AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
+        
         Db.tx(() -> {
+            newBook.setId(bookId);
             affectedRows1.set(bookMapper.update(newBook));
             return affectedRows1.get() > 0;
         });
-        if (affectedRows1.get() > 0){
+        
+        if (affectedRows1.get() > 0 && newBook.getTag() != null) {
+            // 删除旧关联，使用正确的字段名
+            bookTagMapper.deleteByQuery(
+                    QueryWrapper.create().where("bid = ?", bookId));
+
+            // 添加新的关联关系
+            for (Tag tag : newBook.getTag()) {
+                BookTag bookTag = new BookTag();
+                bookTag.setBid(bookId);
+                bookTag.setTid(tag.getId());
+                bookTagMapper.insert(bookTag);
+            }
+            return StatusCode.BOOK_UPDATE_SUCCESS;
+        } else if (affectedRows1.get() > 0) {
             return StatusCode.BOOK_UPDATE_SUCCESS;
         } else {
             return StatusCode.BOOK_UPDATE_FAIL;
@@ -164,12 +195,17 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public StatusCode deleteBook(Long id) {
-        AtomicInteger affectedRows1 = new AtomicInteger();           //商品表中受影响的行数
+        // 使用正确的字段名删除关联
+        bookTagMapper.deleteByQuery(
+                QueryWrapper.create().where("bid = ?", id));
+                
+        AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
         Db.tx(() -> {
             affectedRows1.set(bookMapper.deleteById(id));
             return affectedRows1.get() > 0;
         });
-        if (affectedRows1.get() > 0){
+        
+        if (affectedRows1.get() > 0) {
             return StatusCode.BOOK_DELETE_SUCCESS;
         } else {
             return StatusCode.BOOK_DELETE_FAIL;

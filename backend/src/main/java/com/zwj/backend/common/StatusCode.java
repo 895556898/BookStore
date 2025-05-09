@@ -18,9 +18,9 @@ public enum StatusCode {
     BOOK_ADD_SUCCESS(30002, "书籍添加成功", "ok"),
     BOOK_ADD_FAIL(30003, "书籍添加失败", "error"),
     BOOK_UPDATE_SUCCESS(30004, "书籍更新成功", "ok"),
-    BOOK_UPDATE_FAIL(30003, "书籍更新失败", "error"),
-    BOOK_DELETE_SUCCESS(30003, "书籍删除成功", "ok"),
-    BOOK_DELETE_FAIL(30003, "书籍删除失败", "error"),
+    BOOK_UPDATE_FAIL(30005, "书籍更新失败", "error"),
+    BOOK_DELETE_SUCCESS(30006, "书籍删除成功", "ok"),
+    BOOK_DELETE_FAIL(30007, "书籍删除失败", "error"),
 
     ;
 

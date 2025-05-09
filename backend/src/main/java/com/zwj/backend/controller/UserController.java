@@ -24,7 +24,7 @@ public class UserController {
     }
 
     //注册
-    @PostMapping("register")
+    @PostMapping("/register")
     public StatusCode register(@RequestBody RegisterRequest request) {
         return userService.register(request.getUsername(), request.getPassword(), request.getPhone());
     }
