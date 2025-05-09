@@ -51,7 +51,6 @@ public class BookServiceImpl implements BookService {
     // 加载图书tag
     @Override
     public List<Tag> getTagsByBookId(Long bookId) {
-
         List<BookTag> bookTags = bookTagMapper.selectListByQuery(
                 QueryWrapper.create().where("bid = ?", bookId));
         if (bookTags == null || bookTags.isEmpty()) {
@@ -59,8 +58,12 @@ public class BookServiceImpl implements BookService {
         }
         List<Long> tagIds = bookTags.stream().map(BookTag::getTid).collect(Collectors.toList());
 
-        return tagMapper.selectListByQuery(
-                QueryWrapper.create().where("id in (?)", tagIds));
+        QueryWrapper query = QueryWrapper.create();
+        if (!tagIds.isEmpty()) {
+            query.where(Tag::getId).in(tagIds);
+        }
+
+        return tagMapper.selectListByQuery(query);
     }
 
     // @Override
@@ -128,7 +131,6 @@ public class BookServiceImpl implements BookService {
         // 获取插入后的ID
         Long bookId = (bookMapper.selectOneByQuery(QueryWrapper.create()
                 .where(BOOK.TITLE.eq(book.getTitle())))).getId();
-        System.out.println(bookId);
 
         if (affectedRows1.get() > 0 && book.getTag() != null && !book.getTag().isEmpty()) {
             // 保存标签关联
@@ -148,11 +150,12 @@ public class BookServiceImpl implements BookService {
                     tagMapper.insert(tag);
                     existingTag = tag; // 使用插入后的对象
                 }
-
+                Long tagId = (tagMapper.selectOneByQuery(QueryWrapper.create()
+                        .where(TAG.NAME.eq(existingTag.getName())))).getId();
                 // 插入中间表关联
                 BookTag bookTag = new BookTag();
                 bookTag.setBid(bookId);
-                bookTag.setTid(existingTag.getId());
+                bookTag.setTid(tagId);
                 bookTagMapper.insert(bookTag);
             }
             return StatusCode.BOOK_ADD_SUCCESS;
