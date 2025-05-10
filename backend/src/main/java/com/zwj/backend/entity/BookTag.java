@@ -1,19 +1,21 @@
 package com.zwj.backend.entity;
 
-import jakarta.persistence.*;
+//import jakarta.persistence.*;
+import com.mybatisflex.annotation.Id;
+import com.mybatisflex.annotation.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import lombok.Data;
 
 @Data
-@Entity
-@Table(name = "book_tag")
+@Table("book_tag")
 public class BookTag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    
-    @Column(name = "bid")
+
     private Long bid;
-    
-    @Column(name = "tid")
+
     private Long tid;
 }

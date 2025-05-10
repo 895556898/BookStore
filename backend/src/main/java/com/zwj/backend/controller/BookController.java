@@ -53,10 +53,10 @@ public class BookController {
         return bookService.createBook(book);
     }
 
-    @PutMapping("/admin/update/{title}")
+    @PutMapping("/admin/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public StatusCode updateBook(@PathVariable String title, @RequestBody Book book) {
-        return bookService.updateBook(title, book);
+    public StatusCode updateBook(@PathVariable Long id, @RequestBody Book book) {
+        return bookService.updateBook(id, book);
     }
 
     @DeleteMapping("/admin/delete/{id}")
