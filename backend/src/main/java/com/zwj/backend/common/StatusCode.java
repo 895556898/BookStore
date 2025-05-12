@@ -21,7 +21,30 @@ public enum StatusCode {
     BOOK_UPDATE_FAIL(30005, "书籍更新失败", "error"),
     BOOK_DELETE_SUCCESS(30006, "书籍删除成功", "ok"),
     BOOK_DELETE_FAIL(30007, "书籍删除失败", "error"),
-
+    
+    // 购物车相关状态码
+    CART_ADD_SUCCESS(40000, "添加购物车成功", "ok"),
+    CART_ADD_FAIL(40001, "添加购物车失败", "error"),
+    CART_UPDATE_SUCCESS(40002, "更新购物车成功", "ok"),
+    CART_UPDATE_FAIL(40003, "更新购物车失败", "error"),
+    CART_DELETE_SUCCESS(40004, "删除购物车项成功", "ok"),
+    CART_DELETE_FAIL(40005, "删除购物车项失败", "error"),
+    CART_CLEAR_SUCCESS(40006, "清空购物车成功", "ok"),
+    CART_CLEAR_FAIL(40007, "清空购物车失败", "error"),
+    
+    // 订单相关状态码
+    ORDER_CREATE_SUCCESS(50000, "创建订单成功", "ok"),
+    ORDER_CREATE_FAIL(50001, "创建订单失败", "error"),
+    ORDER_PAY_SUCCESS(50002, "支付订单成功", "ok"),
+    ORDER_PAY_FAIL(50003, "支付订单失败", "error"),
+    ORDER_CANCEL_SUCCESS(50004, "取消订单成功", "ok"),
+    ORDER_CANCEL_FAIL(50005, "取消订单失败", "error"),
+    ORDER_DELETE_SUCCESS(50006, "删除订单成功", "ok"),
+    ORDER_DELETE_FAIL(50007, "删除订单失败", "error"),
+    ORDER_NOT_EXIST(50008, "订单不存在", "error"),
+    ORDER_STATUS_ERROR(50009, "订单状态错误", "error"),
+    ORDER_PERMISSION_DENIED(50010, "无权操作此订单", "error"),
+    
     ;
 
 
