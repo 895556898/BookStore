@@ -66,11 +66,6 @@ public class BookServiceImpl implements BookService {
         return tagMapper.selectListByQuery(query);
     }
 
-    // @Override
-    // public Page<Book> getBooksByPage(int pageNum, int pageSize) {
-    // return bookMapper.paginate(pageNum, pageSize);
-    // }
-
     // 关键字查询图书
     @Override
     public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword) {
@@ -242,11 +237,28 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public void updateStock(Long id, Integer quantity) {
-        Book book = bookMapper.selectOneById(id);
-        if (book != null) {
-            book.setStock(book.getStock() - quantity);
-            bookMapper.update(book);
+        // 使用悲观锁 - 适合高并发场景
+        // 注意：需要数据库支持 FOR UPDATE
+        Book book = bookMapper.selectForUpdate(id);
+        
+        if (book == null) {
+            throw new RuntimeException("图书不存在");
         }
+        
+        if (book.getStock() < quantity) {
+            throw new RuntimeException("库存不足");
+        }
+        
+        book.setStock(book.getStock() - quantity);
+        
+        // 更新销量
+        if (book.getSales() == 0) {
+            book.setSales(quantity);
+        } else {
+            book.setSales(book.getSales() + quantity);
+        }
+        
+        bookMapper.update(book);
     }
 
     private void copyNonNullProperties(Book src, Book target) {

@@ -2,8 +2,6 @@ package com.zwj.backend.service.Impl;
 
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryChain;
-import com.mybatisflex.core.query.QueryColumn;
-import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zwj.backend.entity.*;
 import com.zwj.backend.entity.dto.OrderRequest;
@@ -21,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.OrderTableDef.ORDER;
 import static com.zwj.backend.entity.table.OrderItemTableDef.ORDER_ITEM;
@@ -89,6 +86,11 @@ public class OrderServiceImpl implements OrderService {
         return Result.success(orders);
     }
 
+    /**
+     * 创建订单
+     * @param request 订单请求对象，包含购物车项ID列表
+     * @return 创建的订单对象
+     */
     @Override
     @Transactional
     public Result<Order> addOrder(OrderRequest request) {
@@ -367,6 +369,12 @@ public class OrderServiceImpl implements OrderService {
         return Result.success(order);
     }
 
+    /**
+     * 支付订单
+     * @param id 订单ID
+     * @param paymentMethod 支付方式
+     * @return 支付结果
+     */
     @Override
     @Transactional
     public Result<Order> payOrder(int id, String paymentMethod) {

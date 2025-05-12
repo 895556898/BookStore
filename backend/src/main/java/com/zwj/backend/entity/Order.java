@@ -10,7 +10,7 @@ import java.util.List;
 
 @Data
 @Table("orders")
-public class Order {
+public class Order {                     //订单 
     @Id
     private Integer id;
     private Integer userId;

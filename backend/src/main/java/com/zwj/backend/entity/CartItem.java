@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Table("cart_items")
-public class CartItem {
+public class CartItem {                 //购物车
     @Id
     private Integer id;
     private Integer userId;

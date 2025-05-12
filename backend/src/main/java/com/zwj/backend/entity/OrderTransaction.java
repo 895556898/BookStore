@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Table("order_transactions")
-public class OrderTransaction {
+public class OrderTransaction {              //订单记录
     @Id
     private Integer id;
     private Integer orderId;
