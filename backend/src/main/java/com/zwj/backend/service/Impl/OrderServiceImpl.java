@@ -3,6 +3,7 @@ package com.zwj.backend.service.Impl;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.row.Db;
 import com.zwj.backend.entity.*;
 import com.zwj.backend.entity.dto.OrderRequest;
 import com.zwj.backend.mapper.*;
@@ -18,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.OrderTableDef.ORDER;
 import static com.zwj.backend.entity.table.OrderItemTableDef.ORDER_ITEM;
@@ -43,6 +47,15 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired
     private BookService bookService;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private BookTagMapper bookTagMapper;
+
+    @Autowired
+    private TagMapper tagMapper;
     
     @Autowired
     private OrderTransactionMapper orderTransactionMapper;
@@ -51,7 +64,8 @@ public class OrderServiceImpl implements OrderService {
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            return (User) authentication.getPrincipal();
+            String username = authentication.getName();
+            return userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));
         }
         return null;
     }
@@ -77,10 +91,15 @@ public class OrderServiceImpl implements OrderService {
             // 加载图书信息
             for (OrderItem orderItem : orderItems) {
                 Book book = bookMapper.selectOneById(orderItem.getBookId());
+                book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
             
             order.setOrderItems(orderItems);
+            
+            // 设置用户信息
+            User user = userMapper.selectOneById(order.getUserId());
+            order.setUser(user);
         }
         
         return Result.success(orders);
@@ -125,13 +144,14 @@ public class OrderServiceImpl implements OrderService {
         
         // 创建订单
         Order order = new Order();
-        order.setUserId((int)currentUser.getId());
+        order.setUserId(currentUser.getId());
         order.setTotalAmount(totalAmount);
         order.setStatus("PENDING"); // 待付款
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
-        orderMapper.insert(order);
-        
+
+        orderMapper.insertOrder(order);
+
         // 创建订单项
         List<OrderItem> orderItems = new ArrayList<>();
         for (CartItem cartItem : cartItems) {
@@ -144,7 +164,7 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setPrice(book.getPrice());
             orderItem.setCreateTime(LocalDateTime.now());
             orderItem.setUpdateTime(LocalDateTime.now());
-            orderItemMapper.insert(orderItem);
+            orderItemMapper.insertOrderItem(orderItem);
             
             // 减少库存
             bookService.updateStock(book.getId(), cartItem.getQuantity());
@@ -159,11 +179,15 @@ public class OrderServiceImpl implements OrderService {
         }
         
         order.setOrderItems(orderItems);
+        
+        // 设置用户信息
+        order.setUser(currentUser);
+        
         return Result.success(order);
     }
 
     @Override
-    public CartItem findCartItemById(List<CartItem> cartItems, int cartItemId) {
+    public CartItem findCartItemById(List<CartItem> cartItems, Long cartItemId) {
         for (CartItem cartItem : cartItems) {
             if (cartItem.getId().equals(cartItemId)) {
                 return cartItem;
@@ -174,7 +198,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public Result<Order> deleteOrder(int id) {
+    public Result<Order> deleteOrder(Long id) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -203,6 +227,9 @@ public class OrderServiceImpl implements OrderService {
         // 删除订单
         orderMapper.deleteById(id);
         
+        // 设置用户信息
+        order.setUser(currentUser);
+        
         return Result.success(order);
     }
 
@@ -210,7 +237,8 @@ public class OrderServiceImpl implements OrderService {
     public Result<List<Order>> getAllOrders() {
         // 检查是否为管理员
         User currentUser = getCurrentUser();
-        if (currentUser == null || !"ADMIN".equals(currentUser.getRole())) {
+        System.out.println(currentUser);
+        if (currentUser == null || !"admin".equalsIgnoreCase(currentUser.getRole())) {
             return Result.error(403, "权限不足");
         }
         
@@ -227,10 +255,15 @@ public class OrderServiceImpl implements OrderService {
             // 加载图书信息
             for (OrderItem orderItem : orderItems) {
                 Book book = bookMapper.selectOneById(orderItem.getBookId());
+                book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
             
             order.setOrderItems(orderItems);
+            
+            // 设置用户信息
+            User user = userMapper.selectOneById(order.getUserId());
+            order.setUser(user);
         }
         
         return Result.success(orders);
@@ -240,7 +273,8 @@ public class OrderServiceImpl implements OrderService {
     public Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end) {
         // 检查是否为管理员
         User currentUser = getCurrentUser();
-        if (currentUser == null || !"ADMIN".equals(currentUser.getRole())) {
+        System.out.println(currentUser);
+        if (currentUser == null || (!"admin".equalsIgnoreCase(currentUser.getRole()))) {
             return Result.error(403, "权限不足");
         }
         
@@ -274,10 +308,15 @@ public class OrderServiceImpl implements OrderService {
             // 加载图书信息
             for (OrderItem orderItem : orderItems) {
                 Book book = bookMapper.selectOneById(orderItem.getBookId());
+                book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
             
             order.setOrderItems(orderItems);
+            
+            // 设置用户信息
+            User user = userMapper.selectOneById(order.getUserId());
+            order.setUser(user);
         }
         
         return Result.success(orderPage);
@@ -323,17 +362,22 @@ public class OrderServiceImpl implements OrderService {
             // 加载图书信息
             for (OrderItem orderItem : orderItems) {
                 Book book = bookMapper.selectOneById(orderItem.getBookId());
+                book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
             
             order.setOrderItems(orderItems);
+            
+            // 设置用户信息
+            User user = userMapper.selectOneById(order.getUserId());
+            order.setUser(user);
         }
         
         return Result.success(orderPage);
     }
 
     @Override
-    public Result<Order> getOrderDetail(int id) {
+    public Result<Order> getOrderDetail(Long id) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -343,7 +387,7 @@ public class OrderServiceImpl implements OrderService {
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .where(ORDER.ID.eq(id));
         
-        if (!"ADMIN".equals(currentUser.getRole())) {
+        if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
             queryWrapper.and(ORDER.USER_ID.eq(currentUser.getId()));
         }
         
@@ -361,10 +405,15 @@ public class OrderServiceImpl implements OrderService {
         // 加载图书信息
         for (OrderItem orderItem : orderItems) {
             Book book = bookMapper.selectOneById(orderItem.getBookId());
+            book.setTag(getTagsByBookId(book.getId()));
             orderItem.setBook(book);
         }
         
         order.setOrderItems(orderItems);
+        
+        // 设置用户信息
+        User user = userMapper.selectOneById(order.getUserId());
+        order.setUser(user);
         
         return Result.success(order);
     }
@@ -377,7 +426,7 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     @Transactional
-    public Result<Order> payOrder(int id, String paymentMethod) {
+    public Result<Order> payOrder(Long id, String paymentMethod) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -423,17 +472,21 @@ public class OrderServiceImpl implements OrderService {
         // 加载图书信息
         for (OrderItem orderItem : orderItems) {
             Book book = bookMapper.selectOneById(orderItem.getBookId());
+            book.setTag(getTagsByBookId(book.getId()));
             orderItem.setBook(book);
         }
         
         order.setOrderItems(orderItems);
+        
+        // 设置用户信息
+        order.setUser(currentUser);
         
         return Result.success(order);
     }
 
     @Override
     @Transactional
-    public Result<Order> cancelOrder(int id) {
+    public Result<Order> cancelOrder(Long id) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -475,6 +528,26 @@ public class OrderServiceImpl implements OrderService {
         
         order.setOrderItems(orderItems);
         
+        // 设置用户信息
+        order.setUser(currentUser);
+        
         return Result.success(order);
+    }
+
+    // 加载图书tag
+    public List<Tag> getTagsByBookId(Long bookId) {
+        List<BookTag> bookTags = bookTagMapper.selectListByQuery(
+                QueryWrapper.create().where("bid = ?", bookId));
+        if (bookTags == null || bookTags.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> tagIds = bookTags.stream().map(BookTag::getTid).collect(Collectors.toList());
+
+        QueryWrapper query = QueryWrapper.create();
+        if (!tagIds.isEmpty()) {
+            query.where(Tag::getId).in(tagIds);
+        }
+
+        return tagMapper.selectListByQuery(query);
     }
 } 

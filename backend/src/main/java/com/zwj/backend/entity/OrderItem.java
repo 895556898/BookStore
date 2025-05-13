@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @Table("order_items")
 public class OrderItem {
     @Id
-    private Integer id;
-    private Integer orderId;
-    private Integer bookId;
+    private Long id;
+    private Long orderId;
+    private Long bookId;
     private Integer quantity;
     private BigDecimal price;
     private LocalDateTime createTime;

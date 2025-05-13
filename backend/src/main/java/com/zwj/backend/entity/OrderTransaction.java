@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Table("order_transactions")
 public class OrderTransaction {              //订单记录
     @Id
-    private Integer id;
-    private Integer orderId;
+    private Long id;
+    private Long orderId;
     private BigDecimal amount;
     private LocalDateTime transactionTime;
     private String status; // SUCCESS, FAILED

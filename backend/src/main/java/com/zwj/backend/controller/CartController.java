@@ -25,7 +25,7 @@ public class CartController {
     @PostMapping("/add")
     @PreAuthorize("hasRole('USER')")
     public Result<CartItem> addToCart(
-            @RequestParam Integer bookId,
+            @RequestParam Long bookId,
             @RequestParam(defaultValue = "1") Integer quantity) {
         return cartService.addToCart(bookId, quantity);
     }
@@ -33,14 +33,14 @@ public class CartController {
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('USER')")
     public Result<CartItem> updateCartItem(
-            @PathVariable("id") Integer cartItemId,
+            @PathVariable("id") Long cartItemId,
             @RequestParam Integer quantity) {
         return cartService.updateCartItem(cartItemId, quantity);
     }
 
     @DeleteMapping("/remove/{id}")
     @PreAuthorize("hasRole('USER')")
-    public Result<Boolean> removeFromCart(@PathVariable("id") Integer cartItemId) {
+    public Result<Boolean> removeFromCart(@PathVariable("id") Long cartItemId) {
         return cartService.removeFromCart(cartItemId);
     }
 

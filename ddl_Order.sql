@@ -1,15 +1,25 @@
-CREATE TABLE IF NOT EXISTS `orders` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `total_amount` DECIMAL(10, 2) NOT NULL,
-  `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-  `payment_time` DATETIME NULL,
-  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_status` (`status`),
-  KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+create table orders
+(
+    id           bigint auto_increment
+        primary key,
+    user_id      bigint                                not null,
+    total_amount decimal(10, 2)                        not null,
+    status       varchar(20) default 'PENDING'         not null,
+    payment_time datetime                              null,
+    create_time  datetime    default CURRENT_TIMESTAMP not null,
+    update_time  datetime    default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP
+);
+
+create index idx_create_time
+    on orders (create_time);
+
+create index idx_status
+    on orders (status);
+
+create index idx_user_id
+    on orders (user_id);
+
+
 
 CREATE TABLE IF NOT EXISTS `order_items` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 @Table("cart_items")
 public class CartItem {                 //购物车
     @Id
-    private Integer id;
-    private Integer userId;
-    private Integer bookId;
+    private Long id;
+    private Long userId;
+    private Long bookId;
     private Integer quantity;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

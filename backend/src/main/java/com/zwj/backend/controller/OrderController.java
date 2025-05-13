@@ -21,26 +21,31 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping
+    @PreAuthorize("hasRole('USER')")
     public Result<List<Order>> getOrders() {
         return orderService.getOrders();
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('USER')")
     public Result<Order> createOrder(@RequestBody OrderRequest request) {
         return orderService.addOrder(request);
     }
 
     @GetMapping("/{id}")
-    public Result<Order> getOrderDetail(@PathVariable("id") Integer id) {
+    @PreAuthorize("hasRole('USER')")
+    public Result<Order> getOrderDetail(@PathVariable("id") Long id) {
         return orderService.getOrderDetail(id);
     }
 
     @DeleteMapping("/{id}")
-    public Result<Order> deleteOrder(@PathVariable("id") Integer id) {
+    @PreAuthorize("hasRole('USER')")
+    public Result<Order> deleteOrder(@PathVariable("id") Long id) {
         return orderService.deleteOrder(id);
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasRole('USER')")
     public Result<Page<Order>> searchOrders(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) 
@@ -53,14 +58,16 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/pay")
+    @PreAuthorize("hasRole('USER')")
     public Result<Order> payOrder(
-            @PathVariable("id") Integer id,
+            @PathVariable("id") Long id,
             @RequestParam String paymentMethod) {
         return orderService.payOrder(id, paymentMethod);
     }
 
     @PostMapping("/{id}/cancel")
-    public Result<Order> cancelOrder(@PathVariable("id") Integer id) {
+    @PreAuthorize("hasRole('USER')")
+    public Result<Order> cancelOrder(@PathVariable("id") Long id) {
         return orderService.cancelOrder(id);
     }
 

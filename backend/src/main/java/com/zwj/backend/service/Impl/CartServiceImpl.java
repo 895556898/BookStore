@@ -73,7 +73,7 @@ public class CartServiceImpl implements CartService {
     //添加商品到购物车
     @Override
     @Transactional
-    public Result<CartItem> addToCart(Integer bookId, Integer quantity) {
+    public Result<CartItem> addToCart(Long bookId, Integer quantity) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -106,7 +106,7 @@ public class CartServiceImpl implements CartService {
         } else {
             // 创建新购物车项
             CartItem cartItem = new CartItem();
-            cartItem.setUserId((int)currentUser.getId());
+            cartItem.setUserId(currentUser.getId());
             cartItem.setBookId(bookId);
             cartItem.setQuantity(quantity);
             cartItem.setCreateTime(LocalDateTime.now());
@@ -119,7 +119,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public Result<CartItem> updateCartItem(Integer cartItemId, Integer quantity) {
+    public Result<CartItem> updateCartItem(Long cartItemId, Integer quantity) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -153,7 +153,7 @@ public class CartServiceImpl implements CartService {
     //删除购物车项
     @Override
     @Transactional
-    public Result<Boolean> removeFromCart(Integer cartItemId) {
+    public Result<Boolean> removeFromCart(Long cartItemId) {
         User currentUser = getCurrentUser();
         if (currentUser == null) {
             return Result.error(401, "用户未登录");
@@ -216,12 +216,12 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartItem findCartItemById(Integer cartItemId) {
+    public CartItem findCartItemById(Long cartItemId) {
         return cartItemMapper.selectOneById(cartItemId);
     }
 
     @Override
-    public List<CartItem> getCartItemsByIds(List<Integer> cartItemIds) {
+    public List<CartItem> getCartItemsByIds(List<Long> cartItemIds) {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             return new ArrayList<>();
         }
