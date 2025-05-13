@@ -12,5 +12,5 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Insert("INSERT INTO orders (user_id, total_amount, status, payment_time, create_time, update_time) " +
             "VALUES (#{userId}, #{totalAmount}, #{status}, #{paymentTime}, #{createTime}, #{updateTime})")
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
-    int insertOrder(Order order);
+    void insertOrder(Order order);
 } 

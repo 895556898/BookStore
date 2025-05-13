@@ -3,7 +3,6 @@ package com.zwj.backend.service.Impl;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.row.Db;
 import com.zwj.backend.entity.*;
 import com.zwj.backend.entity.dto.OrderRequest;
 import com.zwj.backend.mapper.*;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.OrderTableDef.ORDER;

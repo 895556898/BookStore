@@ -8,7 +8,6 @@ import com.zwj.backend.entity.Book;
 
 @Mapper
 public interface BookMapper extends BaseMapper<Book> {
-    Book selectOneByTitle(String title);
 
     @Select("SELECT * FROM book WHERE id = #{id} FOR UPDATE")
     Book selectForUpdate(Long id);
