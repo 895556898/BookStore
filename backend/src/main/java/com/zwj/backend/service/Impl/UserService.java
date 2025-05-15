@@ -2,6 +2,7 @@ package com.zwj.backend.service.Impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.zwj.backend.common.StatusCode;
+import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.User;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,13 +28,13 @@ public class UserService implements UserDetailsService {
     private BCryptPasswordEncoder passwordEncoder;
 
     //注册
-    public StatusCode register(String username, String password, String phone) {
+    public Result<Void> register(String username, String password, String phone) {
         if(userMapper.selectCountByQuery(new QueryWrapper().eq("username", username)) != 0){
-            return StatusCode.REGISTER_USERNAME_EXIST;
+            return Result.error(400,"用户名已存在");
         }
 
         if(userMapper.selectCountByQuery(new QueryWrapper().eq("phone", phone)) != 0){
-            return StatusCode.REGISTER_PHONE_EXIST;
+            return Result.error(400,"电话已存在");
         }
 
         String encryptedPassword = passwordEncoder.encode(password);
@@ -43,7 +44,7 @@ public class UserService implements UserDetailsService {
         user.setPhone(phone);
         user.setRole("user");
         userMapper.insert(user);
-        return StatusCode.REGISTER_SUCCESS;
+        return Result.success(null);
     }
 
     @Override

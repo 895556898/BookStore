@@ -1,6 +1,7 @@
 package com.zwj.backend.controller;
 
 import com.zwj.backend.common.StatusCode;
+import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.dto.RegisterRequest;
 import com.zwj.backend.service.Impl.UserService;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class UserController {
 
     //注册
     @PostMapping("/register")
-    public StatusCode register(@RequestBody RegisterRequest request) {
+    public Result<Void> register(@RequestBody RegisterRequest request) {
         return userService.register(request.getUsername(), request.getPassword(), request.getPhone());
     }
 
