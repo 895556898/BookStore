@@ -49,19 +49,19 @@ public class BookController {
 
     @PostMapping("/admin/add")
     @PreAuthorize("hasRole('ADMIN')")
-    public StatusCode createBook(@RequestBody Book book) {
+    public Result<Void> createBook(@RequestBody Book book) {
         return bookService.createBook(book);
     }
 
     @PutMapping("/admin/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public StatusCode updateBook(@PathVariable Long id, @RequestBody Book book) {
+    public Result<Void> updateBook(@PathVariable Long id, @RequestBody Book book) {
         return bookService.updateBook(id, book);
     }
 
     @DeleteMapping("/admin/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public StatusCode deleteBook(@PathVariable Long id) {
+    public Result<Void> deleteBook(@PathVariable Long id) {
         return bookService.deleteBook(id);
     }
 } 

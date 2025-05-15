@@ -1,0 +1,873 @@
+<template>
+  <div class="checkout-container">
+    <div class="page-header">
+      <h1>确认订单</h1>
+    </div>
+    
+    <div v-if="loading" class="loading">
+      <el-skeleton style="width: 100%" :rows="10" animated />
+    </div>
+    
+    <div v-else-if="checkoutItems.length === 0" class="empty-checkout">
+      <el-empty description="没有可结算的商品">
+        <template #extra>
+          <el-button type="primary" @click="router.push('/cart')">返回购物车</el-button>
+        </template>
+      </el-empty>
+    </div>
+    
+    <div v-else class="checkout-content">
+      <!-- 收货地址 -->
+      <div class="section">
+        <div class="section-title">
+          <h2>收货地址</h2>
+          <el-button type="primary" link @click="showAddressDialog = true">
+            {{ selectedAddress ? '修改地址' : '添加地址' }}
+          </el-button>
+        </div>
+        
+        <div v-if="selectedAddress" class="address-card">
+          <div class="address-info">
+            <p><span class="receiver">{{ selectedAddress.receiver }}</span> <span class="phone">{{ selectedAddress.phone }}</span></p>
+            <p class="address-detail">{{ getFullAddress(selectedAddress) }}</p>
+          </div>
+        </div>
+        
+        <div v-else class="empty-address">
+          <el-button type="primary" @click="showAddressDialog = true">添加收货地址</el-button>
+        </div>
+      </div>
+      
+      <!-- 订单商品 -->
+      <div class="section">
+        <div class="section-title">
+          <h2>商品清单</h2>
+          <el-button type="primary" link @click="router.push('/cart')">
+            返回购物车
+          </el-button>
+        </div>
+        
+        <div class="order-items">
+          <el-table :data="checkoutItems" border style="width: 100%">
+            <el-table-column label="商品信息">
+              <template #default="scope">
+                <div class="checkout-item">
+                  <div class="checkout-item-image">
+                    <el-image
+                      :src="scope.row.book.cover || '/default-book.jpg'"
+                      fit="cover"
+                      class="book-cover"
+                    />
+                  </div>
+                  <div class="checkout-item-info">
+                    <h3 class="book-title">{{ scope.row.book.title }}</h3>
+                    <p class="book-author">{{ scope.row.book.author }}</p>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="单价" width="150">
+              <template #default="scope">
+                <span class="price">￥{{ scope.row.book.price?.toFixed(2) || '0.00' }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="数量" width="100" prop="quantity" />
+            
+            <el-table-column label="小计" width="150">
+              <template #default="scope">
+                <span class="subtotal">￥{{ calculateSubtotal(scope.row).toFixed(2) }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      
+      <!-- 支付方式 -->
+      <div class="section">
+        <div class="section-title">
+          <h2>支付方式</h2>
+        </div>
+        
+        <div class="payment-methods">
+          <el-radio-group v-model="paymentMethod">
+            <el-radio label="WECHAT">微信支付</el-radio>
+            <el-radio label="ALIPAY">支付宝</el-radio>
+            <el-radio label="BANK_CARD">银行卡</el-radio>
+          </el-radio-group>
+        </div>
+      </div>
+      
+      <!-- 订单备注 -->
+      <div class="section">
+        <div class="section-title">
+          <h2>订单备注</h2>
+        </div>
+        
+        <el-input
+          v-model="remark"
+          type="textarea"
+          :rows="2"
+          placeholder="请输入订单备注（选填）"
+          maxlength="100"
+          show-word-limit
+        />
+      </div>
+      
+      <!-- 订单金额 -->
+      <div class="order-summary">
+        <div class="summary-item">
+          <span>商品金额：</span>
+          <span>￥{{ totalAmount.toFixed(2) }}</span>
+        </div>
+        <div class="summary-item">
+          <span>运费：</span>
+          <span>￥{{ shipping.toFixed(2) }}</span>
+        </div>
+        <div class="summary-item total">
+          <span>应付金额：</span>
+          <span class="total-price">￥{{ (totalAmount + shipping).toFixed(2) }}</span>
+        </div>
+        
+        <div class="submit-order">
+          <el-button 
+            type="danger" 
+            size="large" 
+            :disabled="!canSubmit"
+            @click="submitOrder"
+            :loading="submitting"
+          >
+            提交订单
+          </el-button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 地址选择对话框 -->
+    <el-dialog
+      v-model="showAddressDialog"
+      title="选择收货地址"
+      width="50%"
+    >
+      <div class="address-list">
+        <el-radio-group v-model="selectedAddressId">
+          <div v-for="address in addresses" :key="address.id" class="address-option">
+            <el-radio :label="address.id">
+              <div class="address-card">
+                <div class="address-info">
+                  <p>
+                    <span class="receiver">{{ address.receiver }}</span>
+                    <span class="phone">{{ address.phone }}</span>
+                  </p>
+                  <p class="address-detail">{{ getFullAddress(address) }}</p>
+                </div>
+                <div class="address-actions">
+                  <el-button type="primary" link size="small" @click.stop="editAddress(address)">
+                    编辑
+                  </el-button>
+                  <el-button type="danger" link size="small" @click.stop="deleteAddress(address.id)">
+                    删除
+                  </el-button>
+                </div>
+              </div>
+            </el-radio>
+          </div>
+        </el-radio-group>
+        
+        <div class="add-address">
+          <el-button type="primary" @click="openAddressForm">新增收货地址</el-button>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showAddressDialog = false">取消</el-button>
+          <el-button type="primary" @click="confirmAddressSelection">确认</el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+    <!-- 地址表单对话框 -->
+    <el-dialog
+      v-model="showAddressForm"
+      :title="editingAddress ? '修改地址' : '新增地址'"
+      width="40%"
+    >
+      <el-form
+        ref="addressFormRef"
+        :model="addressForm"
+        :rules="addressRules"
+        label-width="100px"
+      >
+        <el-form-item label="收货人" prop="receiver">
+          <el-input v-model="addressForm.receiver" />
+        </el-form-item>
+        
+        <el-form-item label="手机号码" prop="phone">
+          <el-input v-model="addressForm.phone" />
+        </el-form-item>
+        
+        <el-form-item label="所在地区" prop="region">
+          <el-cascader
+            v-model="addressForm.region"
+            :options="regionOptions"
+            placeholder="请选择省/市/区"
+          />
+        </el-form-item>
+        
+        <el-form-item label="详细地址" prop="detailAddress">
+          <el-input v-model="addressForm.detailAddress" type="textarea" :rows="2" />
+        </el-form-item>
+        
+        <el-form-item label="邮政编码" prop="zipCode">
+          <el-input v-model="addressForm.zipCode" />
+        </el-form-item>
+        
+        <el-form-item>
+          <el-checkbox v-model="addressForm.isDefault">设为默认地址</el-checkbox>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showAddressForm = false">取消</el-button>
+          <el-button type="primary" @click="saveAddress">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+    <!-- 支付确认对话框 -->
+    <el-dialog
+      v-model="showPaymentDialog"
+      title="订单支付"
+      width="30%"
+      :close-on-click-modal="false"
+    >
+      <div class="payment-dialog-content">
+        <p>订单号：{{ createdOrderId }}</p>
+        <p>支付金额：<span class="total-price">￥{{ (totalAmount + shipping).toFixed(2) }}</span></p>
+        <p>支付方式：{{ getPaymentMethodText() }}</p>
+        
+        <div class="payment-qr-code">
+          <p>请使用{{ getPaymentMethodText() }}扫描下方二维码完成支付</p>
+          <div class="qr-code">
+            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"></el-image>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelPayment">取消支付</el-button>
+          <el-button type="primary" @click="confirmPayment">确认已支付</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+
+const router = useRouter()
+const loading = ref(true)
+const submitting = ref(false)
+const checkoutItems = ref([])
+const addresses = ref([])
+const selectedAddressId = ref('')
+const paymentMethod = ref('ALIPAY')
+const remark = ref('')
+const shipping = ref(10) // 运费
+const showAddressDialog = ref(false)
+const showAddressForm = ref(false)
+const showPaymentDialog = ref(false)
+const addressForm = ref({
+  receiver: '',
+  phone: '',
+  region: [],
+  detailAddress: '',
+  zipCode: '',
+  isDefault: false
+})
+const editingAddress = ref(false)
+const editingAddressId = ref(null)
+const createdOrderId = ref('')
+
+// 地址表单验证规则
+const addressRules = {
+  receiver: [
+    { required: true, message: '请输入收货人姓名', trigger: 'blur' },
+    { min: 2, max: 20, message: '姓名长度在 2 到 20 个字符', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号码', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+  ],
+  region: [
+    { required: true, message: '请选择所在地区', trigger: 'change' }
+  ],
+  detailAddress: [
+    { required: true, message: '请输入详细地址', trigger: 'blur' },
+    { min: 5, max: 100, message: '地址长度在 5 到 100 个字符', trigger: 'blur' }
+  ],
+  zipCode: [
+    { pattern: /^\d{6}$/, message: '请输入正确的邮政编码', trigger: 'blur' }
+  ]
+}
+
+// 示例的地区数据(实际项目中应该从API获取)
+const regionOptions = [
+  {
+    value: '110000',
+    label: '北京市',
+    children: [
+      {
+        value: '110100',
+        label: '北京市',
+        children: [
+          { value: '110101', label: '东城区' },
+          { value: '110102', label: '西城区' },
+          { value: '110105', label: '朝阳区' },
+          { value: '110106', label: '丰台区' }
+        ]
+      }
+    ]
+  },
+  {
+    value: '310000',
+    label: '上海市',
+    children: [
+      {
+        value: '310100',
+        label: '上海市',
+        children: [
+          { value: '310101', label: '黄浦区' },
+          { value: '310104', label: '徐汇区' },
+          { value: '310112', label: '闵行区' },
+          { value: '310114', label: '嘉定区' }
+        ]
+      }
+    ]
+  }
+]
+
+// 计算总金额
+const totalAmount = computed(() => {
+  return checkoutItems.value.reduce((total, item) => {
+    return total + calculateSubtotal(item)
+  }, 0)
+})
+
+// 计算小计
+const calculateSubtotal = (item) => {
+  const price = item.book?.price || 0
+  return price * item.quantity
+}
+
+// 获取完整地址文本
+const getFullAddress = (address) => {
+  if (!address) return ''
+  const regionText = address.region ? `${address.province} ${address.city} ${address.district}` : ''
+  return `${regionText} ${address.detailAddress} ${address.zipCode ? `(${address.zipCode})` : ''}`
+}
+
+// 选中的地址
+const selectedAddress = computed(() => {
+  return addresses.value.find(addr => addr.id === selectedAddressId.value)
+})
+
+// 是否可以提交订单
+const canSubmit = computed(() => {
+  return checkoutItems.value.length > 0 && selectedAddressId.value
+})
+
+// 从本地存储获取结算商品
+const getCheckoutItems = () => {
+  const items = localStorage.getItem('checkoutItems')
+  if (items) {
+    checkoutItems.value = JSON.parse(items)
+  } else {
+    checkoutItems.value = []
+  }
+  loading.value = false
+}
+
+// 获取用户地址列表
+const fetchAddresses = async () => {
+  // 模拟获取地址
+  // 实际项目中应该从API获取
+  addresses.value = [
+    {
+      id: 1,
+      receiver: '张三',
+      phone: '13812345678',
+      province: '北京市',
+      city: '北京市',
+      district: '朝阳区',
+      detailAddress: '三里屯街道10号',
+      zipCode: '100020',
+      isDefault: true,
+      region: ['110000', '110100', '110105']
+    },
+    {
+      id: 2,
+      receiver: '李四',
+      phone: '13987654321',
+      province: '上海市',
+      city: '上海市',
+      district: '黄浦区',
+      detailAddress: '南京路123号',
+      zipCode: '200001',
+      isDefault: false,
+      region: ['310000', '310100', '310101']
+    }
+  ]
+  
+  // 设置默认地址
+  const defaultAddress = addresses.value.find(addr => addr.isDefault)
+  if (defaultAddress) {
+    selectedAddressId.value = defaultAddress.id
+  } else if (addresses.value.length > 0) {
+    selectedAddressId.value = addresses.value[0].id
+  }
+}
+
+// 确认地址选择
+const confirmAddressSelection = () => {
+  showAddressDialog.value = false
+}
+
+// 打开地址表单
+const openAddressForm = () => {
+  editingAddress.value = false
+  editingAddressId.value = null
+  addressForm.value = {
+    receiver: '',
+    phone: '',
+    region: [],
+    detailAddress: '',
+    zipCode: '',
+    isDefault: false
+  }
+  showAddressForm.value = true
+}
+
+// 编辑地址
+const editAddress = (address) => {
+  editingAddress.value = true
+  editingAddressId.value = address.id
+  addressForm.value = {
+    receiver: address.receiver,
+    phone: address.phone,
+    region: address.region,
+    detailAddress: address.detailAddress,
+    zipCode: address.zipCode,
+    isDefault: address.isDefault
+  }
+  showAddressForm.value = true
+}
+
+// 删除地址
+const deleteAddress = (addressId) => {
+  ElMessageBox.confirm('确定要删除该地址吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    // 模拟删除地址
+    addresses.value = addresses.value.filter(addr => addr.id !== addressId)
+    
+    if (selectedAddressId.value === addressId) {
+      const defaultAddress = addresses.value.find(addr => addr.isDefault)
+      if (defaultAddress) {
+        selectedAddressId.value = defaultAddress.id
+      } else if (addresses.value.length > 0) {
+        selectedAddressId.value = addresses.value[0].id
+      } else {
+        selectedAddressId.value = ''
+      }
+    }
+    
+    ElMessage.success('删除地址成功')
+  }).catch(() => {})
+}
+
+// 保存地址
+const saveAddress = async () => {
+  const formRef = document.querySelector('#addressFormRef')
+  
+  // 模拟表单验证(实际上ElementPlus的验证机制会更复杂)
+  if (!addressForm.value.receiver || !addressForm.value.phone || !addressForm.value.region || !addressForm.value.detailAddress) {
+    ElMessage.error('请填写必填项')
+    return
+  }
+  
+  // 模拟保存地址
+  const regionLabels = getRegionLabels(addressForm.value.region)
+  
+  if (editingAddress.value) {
+    // 更新现有地址
+    const index = addresses.value.findIndex(addr => addr.id === editingAddressId.value)
+    if (index !== -1) {
+      addresses.value[index] = {
+        ...addresses.value[index],
+        receiver: addressForm.value.receiver,
+        phone: addressForm.value.phone,
+        province: regionLabels[0] || '',
+        city: regionLabels[1] || '',
+        district: regionLabels[2] || '',
+        region: addressForm.value.region,
+        detailAddress: addressForm.value.detailAddress,
+        zipCode: addressForm.value.zipCode,
+        isDefault: addressForm.value.isDefault
+      }
+      
+      // 如果设为默认地址，其他地址取消默认
+      if (addressForm.value.isDefault) {
+        addresses.value.forEach(addr => {
+          if (addr.id !== editingAddressId.value) {
+            addr.isDefault = false
+          }
+        })
+      }
+    }
+  } else {
+    // 添加新地址
+    const newAddress = {
+      id: Date.now(), // 模拟生成ID
+      receiver: addressForm.value.receiver,
+      phone: addressForm.value.phone,
+      province: regionLabels[0] || '',
+      city: regionLabels[1] || '',
+      district: regionLabels[2] || '',
+      region: addressForm.value.region,
+      detailAddress: addressForm.value.detailAddress,
+      zipCode: addressForm.value.zipCode,
+      isDefault: addressForm.value.isDefault
+    }
+    
+    addresses.value.push(newAddress)
+    selectedAddressId.value = newAddress.id
+    
+    // 如果设为默认地址，其他地址取消默认
+    if (newAddress.isDefault) {
+      addresses.value.forEach(addr => {
+        if (addr.id !== newAddress.id) {
+          addr.isDefault = false
+        }
+      })
+    }
+  }
+  
+  showAddressForm.value = false
+  ElMessage.success(editingAddress.value ? '修改地址成功' : '添加地址成功')
+}
+
+// 获取地区标签
+const getRegionLabels = (regionCodes) => {
+  const labels = []
+  let options = regionOptions
+  
+  for (const code of regionCodes) {
+    const option = options.find(opt => opt.value === code)
+    if (option) {
+      labels.push(option.label)
+      options = option.children || []
+    }
+  }
+  
+  return labels
+}
+
+// 提交订单
+const submitOrder = async () => {
+  if (!selectedAddressId.value) {
+    ElMessage.warning('请选择收货地址')
+    return
+  }
+  
+  if (checkoutItems.value.length === 0) {
+    ElMessage.warning('没有可结算的商品')
+    return
+  }
+  
+  submitting.value = true
+  
+  try {
+    // 构建订单请求参数
+    const orderItems = checkoutItems.value.map(item => ({
+      bookId: item.book.id,
+      quantity: item.quantity
+    }))
+    
+    const orderRequest = {
+      addressId: selectedAddressId.value,
+      items: orderItems,
+      paymentMethod: paymentMethod.value,
+      remark: remark.value
+    }
+    
+    // 发送创建订单请求
+    const response = await fetch('/api/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderRequest),
+      credentials: 'include'
+    })
+    
+    const result = await response.json()
+    if (result.code === 200) {
+      // 订单创建成功，显示支付对话框
+      createdOrderId.value = result.data.id
+      localStorage.removeItem('checkoutItems') // 清除结算商品
+      showPaymentDialog.value = true
+      ElMessage.success('订单创建成功')
+    } else {
+      ElMessage.error(result.message || '创建订单失败')
+    }
+  } catch (error) {
+    console.error('创建订单失败:', error)
+    ElMessage.error('创建订单失败，请稍后再试')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 获取支付方式文本
+const getPaymentMethodText = () => {
+  const methods = {
+    'WECHAT': '微信支付',
+    'ALIPAY': '支付宝',
+    'BANK_CARD': '银行卡'
+  }
+  return methods[paymentMethod.value] || '未知支付方式'
+}
+
+// 确认支付
+const confirmPayment = async () => {
+  try {
+    // 发送支付请求
+    const response = await fetch(`/api/order/${createdOrderId.value}/pay?paymentMethod=${paymentMethod.value}`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    
+    const result = await response.json()
+    if (result.code === 200) {
+      ElMessage.success('支付成功')
+      showPaymentDialog.value = false
+      
+      // 跳转到订单详情页
+      router.push(`/orders/${createdOrderId.value}`)
+    } else {
+      ElMessage.error(result.message || '支付失败')
+    }
+  } catch (error) {
+    console.error('支付失败:', error)
+    ElMessage.error('支付失败，请稍后再试')
+  }
+}
+
+// 取消支付
+const cancelPayment = () => {
+  ElMessageBox.confirm('确定要取消支付吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '继续支付',
+    type: 'warning'
+  }).then(() => {
+    showPaymentDialog.value = false
+    router.push(`/orders/${createdOrderId.value}`)
+  }).catch(() => {})
+}
+
+onMounted(() => {
+  getCheckoutItems()
+  fetchAddresses()
+})
+</script>
+
+<style scoped>
+.checkout-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.loading, .empty-checkout {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.section {
+  margin-bottom: 30px;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.section-title h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.empty-address {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.address-card {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.address-info p {
+  margin: 5px 0;
+}
+
+.receiver {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.phone {
+  color: #666;
+}
+
+.address-detail {
+  color: #333;
+}
+
+.address-option {
+  margin-bottom: 15px;
+}
+
+.address-actions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.add-address {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.checkout-item {
+  display: flex;
+  align-items: center;
+}
+
+.checkout-item-image {
+  width: 80px;
+  margin-right: 15px;
+}
+
+.book-cover {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+}
+
+.checkout-item-info {
+  flex-grow: 1;
+}
+
+.book-title {
+  margin: 0 0 5px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.book-author {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.price, .subtotal {
+  font-weight: bold;
+}
+
+.subtotal {
+  color: #ff6700;
+}
+
+.payment-methods {
+  padding: 15px 0;
+}
+
+.order-summary {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  margin-top: 30px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.summary-item.total {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.total-price {
+  color: #ff6700;
+  font-size: 20px;
+}
+
+.submit-order {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.payment-dialog-content {
+  text-align: center;
+}
+
+.payment-qr-code {
+  margin-top: 20px;
+}
+
+.qr-code {
+  margin: 15px auto;
+  width: 200px;
+  height: 200px;
+  border: 1px solid #eee;
+}
+</style> 

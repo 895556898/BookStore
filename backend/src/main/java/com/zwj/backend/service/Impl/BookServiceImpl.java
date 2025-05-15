@@ -126,7 +126,7 @@ public class BookServiceImpl implements BookService {
     //添加图书
     @Override
     @Transactional
-    public StatusCode createBook(Book book) {
+    public Result<Void> createBook(Book book) {
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
 
         // 先保存图书，获取生成的ID
@@ -142,23 +142,23 @@ public class BookServiceImpl implements BookService {
         if (affectedRows1.get() > 0 && book.getTag() != null && !book.getTag().isEmpty()) {
             // 保存标签关联
             setBookTag(bookId, book);
-            return StatusCode.BOOK_ADD_SUCCESS;
+            return Result.success(null);
         } else if (affectedRows1.get() > 0 && book.getTag() == null) {
-            return StatusCode.BOOK_ADD_SUCCESS;
+            return Result.success(null);
         } else {
-            return StatusCode.BOOK_ADD_FAIL;
+            return Result.error(400,"添加失败");
         }
     }
 
     //更新图书信息
     @Transactional
     @Override
-    public StatusCode updateBook(Long id, Book newBook) {
+    public Result<Void> updateBook(Long id, Book newBook) {
         Book book = bookMapper.selectOneById(id);
         if (book != null) {
             book.setTag(getTagsByBookId(id));
         } else {
-            return StatusCode.BOOK_UPDATE_FAIL;
+            return Result.error(400,"书本不存在");
         }
 
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
@@ -177,11 +177,11 @@ public class BookServiceImpl implements BookService {
                     QueryWrapper.create().where("bid = ?", id));
 
             setBookTag(id, book);
-            return StatusCode.BOOK_UPDATE_SUCCESS;
+            return Result.success(null);
         } else if (affectedRows1.get() > 0) {
-            return StatusCode.BOOK_UPDATE_SUCCESS;
+            return Result.success(null);
         } else {
-            return StatusCode.BOOK_UPDATE_FAIL;
+            return Result.error(400,"更新失败");
         }
     }
 
@@ -216,7 +216,7 @@ public class BookServiceImpl implements BookService {
     //删除图书
     @Override
     @Transactional
-    public StatusCode deleteBook(Long id) {
+    public Result<Void> deleteBook(Long id) {
         // 使用正确的字段名删除关联
         bookTagMapper.deleteByQuery(
                 QueryWrapper.create().where("bid = ?", id));
@@ -228,9 +228,9 @@ public class BookServiceImpl implements BookService {
         });
 
         if (affectedRows1.get() > 0) {
-            return StatusCode.BOOK_DELETE_SUCCESS;
+            return Result.success(null);
         } else {
-            return StatusCode.BOOK_DELETE_FAIL;
+            return Result.error(400,"删除失败");
         }
     }
 

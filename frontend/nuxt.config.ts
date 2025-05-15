@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/content',
     '@nuxt/eslint',
-    '@element-plus/nuxt'
+    '@element-plus/nuxt',
+    '@pinia/nuxt'
   ],
 
   elementPlus: {
@@ -20,4 +21,15 @@ export default defineNuxtConfig({
     // themes: ['dark']      // 可选暗黑主题
     // directives: PresetDirectives,
   },
+  
+  // API代理配置
+  nitro: {
+    devProxy: {
+      '/api': {
+        target: 'http://localhost:8080', // 后端服务器地址，根据实际情况修改
+        changeOrigin: true,
+        prependPath: true
+      }
+    }
+  }
 })
