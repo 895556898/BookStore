@@ -1,6 +1,8 @@
 package com.zwj.backend.controller;
 
 import com.zwj.backend.common.StatusCode;
+import com.zwj.backend.entity.Result;
+import com.zwj.backend.entity.User;
 import com.zwj.backend.service.Impl.UserService;
 import com.zwj.backend.service.Impl.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +13,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/user")
 @Scope("session")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true", maxAge = 3600)
 public class LoginController {
 
     private final UserService userService;
@@ -32,7 +36,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public StatusCode login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) throws Exception {
+    public Result<User> login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) throws Exception {
         // 检查用户是否已经登录
         if (sessionService.isUserLoggedIn(username)) {
             // 获取之前的sessionId
@@ -44,27 +48,41 @@ public class LoginController {
             }
         }
 
-        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(username, password);
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(passwordEncoder);
-        daoAuthenticationProvider.setUserDetailsService(userService);
-        Authentication authenticate = daoAuthenticationProvider.authenticate(usernamePasswordAuthenticationToken);
-        
-        SecurityContextHolder.getContext().setAuthentication(authenticate);
-        HttpSession session = request.getSession();
-        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
-        
-        // 保存新的session信息
-        sessionService.addSession(username, session.getId());
-        
-        SecurityContextHolder.clearContext();
-        return userService.getUserByUsername(username);
+        try {
+            UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(username, password);
+            DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(passwordEncoder);
+            daoAuthenticationProvider.setUserDetailsService(userService);
+            Authentication authenticate = daoAuthenticationProvider.authenticate(usernamePasswordAuthenticationToken);
+            
+            SecurityContextHolder.getContext().setAuthentication(authenticate);
+            HttpSession session = request.getSession();
+            session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            
+            // 保存新的session信息
+            sessionService.addSession(username, session.getId());
+            
+            SecurityContextHolder.clearContext();
+            
+            // 获取用户信息
+            User user = userService.getUserEntityByUsername(username);
+            
+            if (user != null) {
+                // 不返回密码等敏感信息
+                user.setPassword(null);
+                return Result.success(user);
+            } else {
+                return Result.error(StatusCode.LOGIN_FAIL.getCode(), StatusCode.LOGIN_FAIL.getMsg());
+            }
+        } catch (Exception e) {
+            return Result.error(400, "登录失败");
+        }
     }
 
     @PostMapping("/logout")
-    public StatusCode logout(HttpServletRequest request) {
+    public Result<Void> logout(HttpServletRequest request) {
         HttpSession session = request.getSession();
         if (session.getAttribute("SPRING_SECURITY_CONTEXT") == null) {
-            return StatusCode.LOGOUT_FAIL;
+            return Result.error(StatusCode.LOGOUT_FAIL.getCode(), StatusCode.LOGOUT_FAIL.getMsg());
         }
         
         // 从session中获取用户名
@@ -76,6 +94,6 @@ public class LoginController {
         }
         
         session.invalidate();
-        return StatusCode.LOGOUT_SUCCESS;
+        return Result.success(null);
     }
 }

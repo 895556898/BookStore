@@ -74,4 +74,8 @@ public class UserService implements UserDetailsService {
         }
         return StatusCode.LOGIN_SUCCESS;
     }
+
+    public User getUserEntityByUsername(String username) {
+        return userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));
+    }
 }

@@ -1,12 +1,12 @@
 <template>
   <div class="login-container">
     <el-card class="login-box">
-      <h2 class="login-title">书店管理系统登录</h2>
+      <h2 class="login-title">用户登录</h2>
 
       <el-form
+          ref="loginFormRef"
           :model="loginForm"
           :rules="loginRules"
-          ref="loginFormRef"
           label-width="80px"
       >
 
@@ -33,9 +33,9 @@
         <!-- 登录按钮 -->
         <el-button
             type="primary"
-            @click="handleLogin"
             class="login-btn"
             :loading="loading"
+            @click="handleLogin"
         >
           立即登录
         </el-button>
@@ -46,8 +46,8 @@
         <span>没有账号？</span>
         <el-button
             type="text"
-            @click="navigateTo('/register')"
             class="register-btn"
+            @click="navigateTo('/register')"
         >
           立即注册
         </el-button>
@@ -68,7 +68,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+// import { ref } from 'vue'
+import { useUserStore } from '../stores/user'
+import { ElMessage } from 'element-plus'
 
 const errorDialogVisible = ref(false)
 const errorMessage = ref('')
@@ -111,53 +113,64 @@ const loginRules = ref({
   ]
 })
 
-// 登录处理
+// 定义后端API基础URL
+const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
+
+// 处理登录逻辑
 const handleLogin = async () => {
-  alert(loginForm.value.username)
-  // try {
-  //   // 1. 表单验证
-  //   const valid = await loginFormRef.value.validate()
-  //   if (!valid) return
-  //
-  //   loading.value = true
-  //
-  //   // 2. 发送登录请求
-  //   const { data: res } = await useFetch('/api/login', {
-  //     method: 'POST',
-  //     body: loginForm.value
-  //   })
-  //
-  //   // 3. 处理响应
-  //   if (res.value.success) {
-  //     ElMessage.success('登录成功')
-  //     // 跳转到主页并传递用户信息
-  //     navigateTo({
-  //       path: '/',
-  //       query: {
-  //         username: loginForm.value.username,
-  //         userType: loginForm.value.userType
-  //       }
-  //     })
-  //   } else {
-  //     showError(res.value.message || '用户名或密码错误')
-  //   }
-  // } catch (err) {
-  //   // 处理网络错误
-  //   showError(err.response?.data?.message || '请求失败，请检查网络')
-  // } finally {
-  //   loading.value = false
-  // }
+  if (!loginFormRef.value) return
+  
+  await loginFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        loading.value = true
+        
+        // 准备表单数据
+        const formData = new URLSearchParams()
+        formData.append('username', loginForm.value.username)
+        formData.append('password', loginForm.value.password)
+        
+        // 发送登录请求
+        const response = await $fetch(`${baseUrl.value}/api/user/login`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          // 添加CORS相关设置
+          credentials: 'include',  // 包含凭据（cookies等）
+          mode: 'cors',            // 指定CORS模式
+          retry: 0                 // 不重试，避免重复请求
+        })
+        
+        // 处理登录成功
+        if (response && response.code === 200) {
+          // 引入并使用Pinia store
+          const userStore = useUserStore()
+          // 保存用户信息到store
+          userStore.setUser(response.data)
+          
+          // 提示用户
+          ElMessage.success('登录成功')
+          
+          // 跳转到首页
+          navigateTo('/')
+        } else {
+          // 显示错误提示
+          errorMessage.value = response?.message || '登录失败，请检查用户名和密码'
+          errorDialogVisible.value = true
+        }
+      } catch (error) {
+        console.error('登录错误:', error)
+        errorMessage.value = '登录失败: ' + (error.message || '网络异常，请稍后重试')
+        errorDialogVisible.value = true
+      } finally {
+        loading.value = false
+      }
+    }
+  })
 }
 
-
-// 新增错误处理函数
-const showError = (msg) => {
-  errorMessage.value = msg
-  errorDialogVisible.value = true
-}
-
-// 路由跳转
-const navigateTo = useRouter().push
 </script>
 
 <style lang="scss" scoped>
