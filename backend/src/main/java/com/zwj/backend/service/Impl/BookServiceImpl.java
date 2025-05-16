@@ -84,13 +84,73 @@ public class BookServiceImpl implements BookService {
         return Result.success(bookPage);
     }
 
+    // 添加带排序功能的searchBooks方法实现
+    @Override
+    public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder) {
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.where(BOOK.TITLE.like("%" + keyword + "%")
+                    .or(BOOK.WRITER.like("%" + keyword + "%"))
+                    .or(BOOK.ISBN.like("%" + keyword + "%")));
+        }
+        
+        // 添加排序
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            boolean isAsc = !"desc".equalsIgnoreCase(sortOrder);
+            
+            // 根据sortBy字段添加排序
+            switch (sortBy) {
+                case "id":
+                    queryWrapper.orderBy(BOOK.ID, isAsc);
+                    break;
+                case "title":
+                    queryWrapper.orderBy(BOOK.TITLE, isAsc);
+                    break;
+                case "writer":
+                    queryWrapper.orderBy(BOOK.WRITER, isAsc);
+                    break;
+                case "price":
+                    queryWrapper.orderBy(BOOK.PRICE, isAsc);
+                    break;
+                case "cost":
+                    queryWrapper.orderBy(BOOK.COST, isAsc);
+                    break;
+                case "stock":
+                    queryWrapper.orderBy(BOOK.STOCK, isAsc);
+                    break;
+                case "isbn":
+                    queryWrapper.orderBy(BOOK.ISBN, isAsc);
+                    break;
+                case "sales":
+                    queryWrapper.orderBy(BOOK.SALES, isAsc);
+                    break;
+                default:
+                    queryWrapper.orderBy(BOOK.ID, true);
+                    break;
+            }
+        } else {
+            // 默认按id排序
+            queryWrapper.orderBy(BOOK.ID, true);
+        }
+        
+        // 执行分页查询
+        Page<Book> bookPage = bookMapper.paginate(pageNum, pageSize, queryWrapper);
+        
+        // 为每本书加载标签信息
+        for (Book book : bookPage.getRecords()) {
+            book.setTag(getTagsByBookId(book.getId()));
+        }
+        
+        return Result.success(bookPage);
+    }
+
     // 标签查询图书
     @Override
     public Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids) {
         List<Long> bookIdList = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
         if (tids == null || tids.isEmpty()) {
-            return searchBooks(pageNum, pageSize, ""); // 空标签，返回全部图书分页
+            return searchBooks(pageNum, pageSize, "", null, null); // 空标签，返回全部图书分页
         }
 
         System.out.println(tids);

@@ -14,6 +14,8 @@ public interface BookService {
     List<Tag> getTagsByBookId(Long bookId);
 //    Page<Book> getBooksByPage(int pageNum, int pageSize);
     Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword);
+    Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder);
+    
     Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids);
     Result<Void> createBook(Book book);
     Result<Void> updateBook(Long id, Book book);

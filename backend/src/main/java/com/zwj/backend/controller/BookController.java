@@ -1,6 +1,5 @@
 package com.zwj.backend.controller;
 
-import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.Book;
 import com.zwj.backend.entity.Result;
 import com.zwj.backend.service.BookService;
@@ -35,8 +34,10 @@ public class BookController {
     public Result<Page<Book>> searchBooks(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(defaultValue = "") String keyword) {
-        return bookService.searchBooks(pageNum, pageSize, keyword);
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String sortOrder) {
+        return bookService.searchBooks(pageNum, pageSize, keyword, sortBy, sortOrder);
     }
 
     @GetMapping("/searchByTags")
