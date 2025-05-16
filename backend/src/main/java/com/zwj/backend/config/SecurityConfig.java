@@ -36,6 +36,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // 启用CORS
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/user/register", "/api/user/login").permitAll()  // 允许注册和登录接口的访问
+                    .requestMatchers("/api/book/search").permitAll()
                 .anyRequest().authenticated()  // 其他请求需要认证
             );
         

@@ -51,8 +51,10 @@ public class BookController {
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        return bookService.searchBooks(pageNum, pageSize, keyword, sortBy, sortOrder);
+            @RequestParam(defaultValue = "asc") String sortOrder,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice) {
+        return bookService.searchBooks(pageNum, pageSize, keyword, sortBy, sortOrder, minPrice, maxPrice);
     }
 
     @GetMapping("/searchByTags")

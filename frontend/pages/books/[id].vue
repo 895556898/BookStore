@@ -1,5 +1,22 @@
 <template>
   <div class="book-detail-container">
+    <!-- 书籍搜索区域 -->
+    <div class="search-container">
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="请输入商品名称"
+          class="search-input"
+        >
+          <template #append>
+            <el-button @click="handleSearch">
+              搜索
+            </el-button>
+          </template>
+        </el-input>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">
       <el-skeleton style="width: 100%" :rows="10" animated />
     </div>
@@ -41,7 +58,7 @@
         
         <div class="book-info">
           <h1>{{ book.title }}</h1>
-          <p class="author">作者：{{ book.author }}</p>
+          <p class="author">作者：{{ book.writer || book.author || '暂无' }}</p>
           <p class="isbn">ISBN：{{ book.isbn || '暂无' }}</p>
           
           <div class="price-info">
@@ -62,6 +79,7 @@
               {{ book.stock > 0 ? '有货' : '缺货' }}
             </span>
             <span class="stock-count" v-if="book.stock > 0">库存: {{ book.stock }}</span>
+            <span class="sales-count">销量: {{ book.sales || 0 }}</span>
           </div>
           
           <div class="book-actions">
@@ -93,32 +111,6 @@
           </div>
         </div>
       </div>
-      
-      <div class="book-detail-tabs">
-        <el-tabs v-model="activeTab">
-          <el-tab-pane label="详情描述" name="description">
-            <div class="description-content">
-              <div v-if="book.description" v-html="book.description"></div>
-              <el-empty v-else description="暂无详情描述"></el-empty>
-            </div>
-          </el-tab-pane>
-          
-          <el-tab-pane label="规格参数" name="params">
-            <el-descriptions :column="1" border>
-              <el-descriptions-item label="出版社">{{ book.publisher || '暂无' }}</el-descriptions-item>
-              <el-descriptions-item label="出版日期">{{ book.publishDate || '暂无' }}</el-descriptions-item>
-              <el-descriptions-item label="页数">{{ book.pages || '暂无' }}</el-descriptions-item>
-              <el-descriptions-item label="开本">{{ book.format || '暂无' }}</el-descriptions-item>
-              <el-descriptions-item label="装帧">{{ book.binding || '暂无' }}</el-descriptions-item>
-              <el-descriptions-item label="ISBN">{{ book.isbn || '暂无' }}</el-descriptions-item>
-            </el-descriptions>
-          </el-tab-pane>
-          
-          <el-tab-pane label="用户评价" name="comments">
-            <el-empty description="暂无评价"></el-empty>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
 
       <div class="related-books">
         <h2>相关推荐</h2>
@@ -147,23 +139,79 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ShoppingCart, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '~/stores/user.js'
 
 const router = useRouter()
 const route = useRoute()
 const bookId = route.params.id
+const userStore = useUserStore()
 
 const book = ref({})
 const loading = ref(true)
 const error = ref(false)
 const quantity = ref(1)
-const activeTab = ref('description')
 const relatedBooks = ref([])
+const searchKeyword = ref('')
+const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
+const isLoggedIn = ref(false)
+
+// 获取认证请求头
+const getAuthHeaders = () => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+  
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  return headers
+}
+
+// 检查登录状态
+const checkLoginStatus = () => {
+  // 初始化用户状态 - 从localStorage恢复
+  if (!userStore.isLoggedIn) {
+    userStore.initUserFromStorage()
+  }
+
+  // 检查用户是否已登录
+  isLoggedIn.value = userStore.isLoggedIn && userStore.user
+  return isLoggedIn.value
+}
+
+// 处理搜索
+const handleSearch = () => {
+  if (searchKeyword.value.trim()) {
+    router.push(`/books?keyword=${encodeURIComponent(searchKeyword.value.trim())}`)
+  }
+}
 
 // 获取图书详情
 const fetchBookDetail = async () => {
   loading.value = true
   try {
-    const response = await fetch(`/api/book/get/${bookId}`)
+    // 检查登录状态
+    checkLoginStatus()
+    
+    const response = await fetch(`${baseUrl.value}/api/book/get/${bookId}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: getAuthHeaders()
+    })
+    
+    if (!response.ok) {
+      // 检查是否未授权
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.warning('请先登录后查看')
+        router.push('/login')
+        return
+      }
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
+    
     const result = await response.json()
     
     if (result.code === 200) {
@@ -195,7 +243,17 @@ const fetchRelatedBooks = async () => {
     }
     
     if (tagIds.length > 0) {
-      const response = await fetch(`/api/book/searchByTags?pageNum=1&pageSize=6&tids=${tagIds.join(',')}`)
+      const response = await fetch(`${baseUrl.value}/api/book/searchByTags?pageNum=1&pageSize=6&tids=${tagIds.join(',')}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: getAuthHeaders()
+      })
+      
+      if (!response.ok) {
+        console.error('获取相关图书失败:', response.status)
+        return
+      }
+      
       const result = await response.json()
       
       if (result.code === 200) {
@@ -204,7 +262,17 @@ const fetchRelatedBooks = async () => {
       }
     } else {
       // 如果没有标签，则获取随机图书
-      const response = await fetch('/api/book/search?pageNum=1&pageSize=6')
+      const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=1&pageSize=6`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: getAuthHeaders()
+      })
+      
+      if (!response.ok) {
+        console.error('获取相关图书失败:', response.status)
+        return
+      }
+      
       const result = await response.json()
       
       if (result.code === 200) {
@@ -222,10 +290,20 @@ const addToCart = async () => {
   try {
     if (!checkLogin()) return
     
-    const response = await fetch(`/api/cart/add?bookId=${bookId}&quantity=${quantity.value}`, {
+    const response = await fetch(`${baseUrl.value}/api/cart/add?bookId=${bookId}&quantity=${quantity.value}`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
+      headers: getAuthHeaders()
     })
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
     
     const result = await response.json()
     if (result.code === 200) {
@@ -245,10 +323,20 @@ const buyNow = async () => {
   
   try {
     // 先加入购物车
-    const response = await fetch(`/api/cart/add?bookId=${bookId}&quantity=${quantity.value}`, {
+    const response = await fetch(`${baseUrl.value}/api/cart/add?bookId=${bookId}&quantity=${quantity.value}`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
+      headers: getAuthHeaders()
     })
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
     
     const result = await response.json()
     if (result.code === 200) {
@@ -265,8 +353,8 @@ const buyNow = async () => {
 
 // 检查是否登录
 const checkLogin = () => {
-  const userInfo = localStorage.getItem('userInfo')
-  if (!userInfo) {
+  const isLogin = checkLoginStatus()
+  if (!isLogin) {
     ElMessage.warning('请先登录')
     router.push('/login')
     return false
@@ -299,9 +387,27 @@ onMounted(() => {
 
 <style scoped>
 .book-detail-container {
-  padding: 20px;
+  padding: 0 0 20px 0;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* 搜索区域样式 */
+.search-container {
+  background-color: #fff;
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.search-bar {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.search-input {
+  width: 100%;
 }
 
 .loading {
@@ -320,6 +426,10 @@ onMounted(() => {
   display: flex;
   gap: 30px;
   margin: 30px 0;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .book-image {
@@ -352,6 +462,7 @@ onMounted(() => {
   margin-bottom: 10px;
   font-size: 24px;
   color: #333;
+  font-weight: bold;
 }
 
 .author, .isbn {
@@ -361,6 +472,9 @@ onMounted(() => {
 
 .price-info {
   margin: 20px 0;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 4px;
 }
 
 .price {
@@ -397,6 +511,11 @@ onMounted(() => {
   font-weight: bold;
 }
 
+.stock-count, .sales-count {
+  margin-left: 10px;
+  color: #666;
+}
+
 .in-stock {
   color: #67c23a;
   background-color: #f0f9eb;
@@ -407,31 +526,18 @@ onMounted(() => {
   background-color: #fef0f0;
 }
 
-.stock-count {
-  margin-left: 10px;
-  color: #666;
-}
-
 .book-actions {
   margin-top: 30px;
   display: flex;
   gap: 15px;
 }
 
-.book-detail-tabs {
-  margin: 30px 0;
+.related-books {
+  margin-top: 40px;
   background-color: #fff;
   border-radius: 8px;
   padding: 20px;
-}
-
-.description-content {
-  padding: 20px 0;
-  min-height: 200px;
-}
-
-.related-books {
-  margin-top: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .related-books h2 {

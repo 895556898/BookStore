@@ -66,32 +66,27 @@ public class BookServiceImpl implements BookService {
         return tagMapper.selectListByQuery(query);
     }
 
-    // 关键字查询图书
-    @Override
-    public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword) {
-        QueryWrapper queryWrapper = QueryWrapper.create();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            queryWrapper.where(BOOK.TITLE.like("%" + keyword + "%")
-                    .or(BOOK.WRITER.like("%" + keyword + "%")));
-        }
-        queryWrapper.orderBy(BOOK.ID.asc());
-        // MyBatis-Flex分页查询
-        Page<Book> bookPage = bookMapper.paginate(pageNum, pageSize, queryWrapper);
-        // 为每本书加载标签信息
-        for (Book book : bookPage.getRecords()) {
-            book.setTag(getTagsByBookId(book.getId()));
-        }
-        return Result.success(bookPage);
-    }
 
     // 添加带排序功能的searchBooks方法实现
+    // 添加带价格区间筛选的searchBooks方法实现
     @Override
-    public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder) {
+    public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder, Double minPrice, Double maxPrice) {
         QueryWrapper queryWrapper = QueryWrapper.create();
+        
+        // 添加关键词筛选
         if (keyword != null && !keyword.trim().isEmpty()) {
             queryWrapper.where(BOOK.TITLE.like("%" + keyword + "%")
                     .or(BOOK.WRITER.like("%" + keyword + "%"))
                     .or(BOOK.ISBN.like("%" + keyword + "%")));
+        }
+        
+        // 添加价格区间筛选
+        if (minPrice != null && maxPrice != null) {
+            queryWrapper.and(BOOK.PRICE.between(minPrice, maxPrice));
+        } else if (minPrice != null) {
+            queryWrapper.and(BOOK.PRICE.ge(minPrice));
+        } else if (maxPrice != null) {
+            queryWrapper.and(BOOK.PRICE.le(maxPrice));
         }
         
         // 添加排序
@@ -150,7 +145,7 @@ public class BookServiceImpl implements BookService {
         List<Long> bookIdList = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
         if (tids == null || tids.isEmpty()) {
-            return searchBooks(pageNum, pageSize, "", null, null); // 空标签，返回全部图书分页
+            return searchBooks(pageNum, pageSize, "", null, null, null, null ); // 空标签，返回全部图书分页
         }
 
         System.out.println(tids);
