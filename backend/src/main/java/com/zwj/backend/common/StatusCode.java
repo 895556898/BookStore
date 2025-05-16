@@ -13,6 +13,7 @@ public enum StatusCode {
     USER_NOT_EXIST(20003, "用户不存在", "error"),
     LOGOUT_FAIL(20004, "未登录", "error"),
     LOGOUT_SUCCESS(20005, "登出成功", "ok"),
+    NOT_LOGGED_IN(20006, "未登录", "error"),
     BOOK_GET_SUCCESS(30000, "书籍查找成功", "ok"),
     BOOK_GET_FAIL(30001,"书籍不存在","error"),
     BOOK_ADD_SUCCESS(30002, "书籍添加成功", "ok"),

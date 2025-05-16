@@ -1,22 +1,38 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Search, ShoppingCart } from "@element-plus/icons-vue"
+import { ElMessage } from 'element-plus'
+
+// 定义图书类型接口
+interface Book {
+  id: number;
+  title: string;
+  author?: string;
+  writer?: string;
+  cover?: string;
+  price: number;
+  sales?: number;
+  stock?: number;
+  tag?: any[];
+}
 
 const searchKey = ref('')
 const activeIndex = ref('1')
-const bookList = ref([])
-const recommendBooks = ref([])
-const newBooks = ref([])
+const bookList = ref<Book[]>([])
+const recommendBooks = ref<Book[]>([])
+const newBooks = ref<Book[]>([])
+const topBooks = ref<Book[]>([]) // 销量前三的书籍
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(8)
 const total = ref(0)
+const baseUrl = ref('http://localhost:8080')
 
 // 获取图书列表
 const fetchBooks = async () => {
   loading.value = true
   try {
-    const response = await fetch(`/api/book/search?pageNum=${currentPage.value}&pageSize=${pageSize.value}&keyword=${searchKey.value}`)
+    const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=${currentPage.value}&pageSize=${pageSize.value}&keyword=${searchKey.value}`)
     const data = await response.json()
     if (data.code === 200) {
       bookList.value = data.data.records
@@ -29,23 +45,56 @@ const fetchBooks = async () => {
   }
 }
 
-// 获取推荐图书
-const fetchRecommendBooks = async () => {
+// 获取销量前三的书籍用于轮播图
+const fetchTopBooks = async () => {
   try {
-    const response = await fetch('/api/book/search?pageNum=1&pageSize=4&keyword=推荐')
+    const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=1&pageSize=3&sortBy=sales&sortOrder=desc`)
     const data = await response.json()
     if (data.code === 200) {
-      recommendBooks.value = data.data.records
+      topBooks.value = data.data.records
+    }
+  } catch (error) {
+    console.error('获取销量前三书籍失败:', error)
+  }
+}
+
+// 获取随机推荐图书
+const fetchRecommendBooks = async () => {
+  try {
+    // 获取随机推荐的4本书
+    const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=1&pageSize=20`)
+    const data = await response.json()
+    if (data.code === 200 && data.data.records.length > 0) {
+      // 从结果中随机选择4本书
+      const allBooks = data.data.records
+      const selectedBooks = []
+      const totalBooks = allBooks.length
+      
+      // 如果书籍数量不足4本，就全部展示
+      if (totalBooks <= 4) {
+        recommendBooks.value = allBooks
+      } else {
+        // 随机选择4本不重复的书
+        const selectedIndices = new Set()
+        while (selectedIndices.size < 4) {
+          const randomIndex = Math.floor(Math.random() * totalBooks)
+          if (!selectedIndices.has(randomIndex)) {
+            selectedIndices.add(randomIndex)
+            selectedBooks.push(allBooks[randomIndex])
+          }
+        }
+        recommendBooks.value = selectedBooks
+      }
     }
   } catch (error) {
     console.error('获取推荐图书失败:', error)
   }
 }
 
-// 获取新书
+// 获取新书（按ID最大的4本书）
 const fetchNewBooks = async () => {
   try {
-    const response = await fetch('/api/book/search?pageNum=1&pageSize=4&keyword=新书')
+    const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=1&pageSize=4&sortBy=id&sortOrder=desc`)
     const data = await response.json()
     if (data.code === 200) {
       newBooks.value = data.data.records
@@ -57,12 +106,18 @@ const fetchNewBooks = async () => {
 
 // 搜索逻辑
 const handleSearch = () => {
+  if (!searchKey.value.trim()) {
+    ElMessage.warning('请输入搜索关键词')
+    return
+  }
+  
   currentPage.value = 1
-  fetchBooks()
+  // 跳转到搜索结果页
+  navigateTo(`/books?keyword=${encodeURIComponent(searchKey.value)}`)
 }
 
 // 页面变化
-const handlePageChange = (page) => {
+const handlePageChange = (page: number) => {
   currentPage.value = page
   fetchBooks()
 }
@@ -70,7 +125,7 @@ const handlePageChange = (page) => {
 // 添加到购物车
 const addToCart = async (bookId) => {
   try {
-    const response = await fetch(`/api/cart/add?bookId=${bookId}&quantity=1`, {
+    const response = await fetch(`${baseUrl.value}/api/cart/add?bookId=${bookId}&quantity=1`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -87,12 +142,12 @@ const addToCart = async (bookId) => {
 }
 
 // 跳转到书籍详情页
-const navigateToDetail = (bookId) => {
+const navigateToDetail = (bookId: number) => {
   navigateTo(`/books/${bookId}`)
 }
 
 // 导航跳转
-const navigateTo = (path) => {
+const navigateTo = (path: string) => {
   useRouter().push(path)
 }
 
@@ -102,7 +157,7 @@ const username = ref('')
 
 const checkLoginStatus = async () => {
   try {
-    const response = await fetch('/api/user/check', {
+    const response = await fetch(`${baseUrl.value}/api/user/check`, {
       method: 'GET',
       credentials: 'include'
     })
@@ -121,9 +176,9 @@ const checkLoginStatus = async () => {
 }
 
 onMounted(() => {
-  fetchBooks()
-  fetchRecommendBooks()
-  fetchNewBooks()
+  fetchTopBooks() // 获取销量前三的书
+  fetchRecommendBooks() // 获取随机推荐的书
+  fetchNewBooks() // 获取最新的书
   checkLoginStatus()
 })
 </script>
@@ -139,12 +194,7 @@ onMounted(() => {
             </el-col>
 
             <el-col :span="13">
-              <el-input
-                v-model="searchKey"
-                placeholder="请输入书名/作者"
-                class="search-input"
-                @keyup.enter="handleSearch"
-              >
+              <el-input v-model="searchKey" placeholder="请输入书名/作者" class="search-input" @keyup.enter="handleSearch">
                 <template #append>
                   <el-button :icon="Search" @click="handleSearch" />
                 </template>
@@ -153,140 +203,61 @@ onMounted(() => {
           </el-row>
         </div>
 
-        <el-row :gutter="20" id="nav_box" class="nav_content" style="background-color: #545c64">
-          <el-col :span="16">
-            <el-menu
-              :default-active="activeIndex"
-              mode="horizontal"
-              class="nav navbar-nav navbar-left"
-              background-color="#545c64"
-              text-color="#fff"
-              active-text-color="#ffd04b"
-            >
-              <el-menu-item index="1" @click="navigateTo('/')">
-                <span class="white">首页</span>
-              </el-menu-item>
-              <el-menu-item index="2" @click="navigateTo('/books/hot')">
-                <span class="white">热销</span>
-              </el-menu-item>
-              <el-menu-item index="3" @click="navigateTo('/books/new')">
-                <span class="white">新书专区</span>
-              </el-menu-item>
-              <el-menu-item index="4" @click="navigateTo('/books/discount')">
-                <span class="white">特价专区</span>
-              </el-menu-item>
-              <el-menu-item index="5" @click="navigateTo('/books/recommend')">
-                <span class="white">推荐书单</span>
-              </el-menu-item>
-            </el-menu>
-          </el-col>
-        </el-row>
-        
-        <!-- 轮播图 -->
+        <!-- 轮播图 - 显示销量前三的书 -->
         <el-carousel height="300px" class="carousel">
-          <el-carousel-item v-for="i in 4" :key="i">
-            <div class="carousel-item" :style="`background-image: url(/banner${i}.jpg)`">
-              <h3 class="carousel-title">精选好书推荐 {{ i }}</h3>
+          <el-carousel-item v-for="(book, index) in topBooks" :key="book?.id || index" @click="book?.id && navigateToDetail(book.id)">
+            <div class="carousel-item" :style="`background-image: url(${book?.cover || `/banner${index+1}.jpg`})`">
+              <h3 class="carousel-title">{{ book?.title || '精选好书推荐' }}</h3>
             </div>
           </el-carousel-item>
         </el-carousel>
-        
-        <!-- 推荐书籍 -->
+
+        <!-- 推荐书籍 - 随机4本书 -->
         <div class="section">
           <div class="section-header">
             <h2>推荐书籍</h2>
-            <el-button type="text" @click="navigateTo('/books/recommend')">查看更多 ></el-button>
+            <el-button type="text" @click="navigateTo('/books')">查看更多 ></el-button>
           </div>
           <el-row :gutter="20">
-            <el-col :span="6" v-for="book in recommendBooks" :key="book.id">
-              <el-card class="book-card" shadow="hover" @click="navigateToDetail(book.id)">
-                <img :src="book.cover || '/default-book.jpg'" class="book-cover" />
+            <el-col :span="6" v-for="book in recommendBooks" :key="book?.id">
+              <el-card class="book-card" shadow="hover" @click="book?.id && navigateToDetail(book.id)">
+                <img :src="book?.cover || '/default-book.jpg'" class="book-cover" />
                 <div class="book-info">
-                  <h3 class="book-title">{{ book.title }}</h3>
-                  <p class="book-author">{{ book.author }}</p>
+                  <h3 class="book-title">{{ book?.title }}</h3>
+                  <p class="book-author">{{ book?.author || book?.writer }}</p>
                   <div class="book-price-row">
-                    <span class="book-price">￥{{ book.price.toFixed(2) }}</span>
-                    <el-button 
-                      type="primary" 
-                      size="small" 
-                      circle 
-                      @click.stop="addToCart(book.id)"
-                      icon="ShoppingCart"
-                    ></el-button>
+                    <span class="book-price">￥{{ book?.price ? book.price.toFixed(2) : '0.00' }}</span>
+                    <el-button type="primary" size="small" circle @click.stop="book?.id && addToCart(book.id)"
+                      :icon="ShoppingCart"></el-button>
                   </div>
                 </div>
               </el-card>
             </el-col>
           </el-row>
         </div>
-        
-        <!-- 新书上架 -->
+
+        <!-- 新书上架 - ID最大的4本书 -->
         <div class="section">
           <div class="section-header">
             <h2>新书上架</h2>
-            <el-button type="text" @click="navigateTo('/books/new')">查看更多 ></el-button>
+            <el-button type="text" @click="navigateTo('/books')">查看更多 ></el-button>
           </div>
           <el-row :gutter="20">
-            <el-col :span="6" v-for="book in newBooks" :key="book.id">
-              <el-card class="book-card" shadow="hover" @click="navigateToDetail(book.id)">
-                <img :src="book.cover || '/default-book.jpg'" class="book-cover" />
+            <el-col :span="6" v-for="book in newBooks" :key="book?.id">
+              <el-card class="book-card" shadow="hover" @click="book?.id && navigateToDetail(book.id)">
+                <img :src="book?.cover || '/default-book.jpg'" class="book-cover" />
                 <div class="book-info">
-                  <h3 class="book-title">{{ book.title }}</h3>
-                  <p class="book-author">{{ book.author }}</p>
+                  <h3 class="book-title">{{ book?.title }}</h3>
+                  <p class="book-author">{{ book?.author || book?.writer }}</p>
                   <div class="book-price-row">
-                    <span class="book-price">￥{{ book.price.toFixed(2) }}</span>
-                    <el-button 
-                      type="primary" 
-                      size="small" 
-                      circle 
-                      @click.stop="addToCart(book.id)"
-                      icon="ShoppingCart"
-                    ></el-button>
+                    <span class="book-price">￥{{ book?.price ? book.price.toFixed(2) : '0.00' }}</span>
+                    <el-button type="primary" size="small" circle @click.stop="book?.id && addToCart(book.id)"
+                      :icon="ShoppingCart"></el-button>
                   </div>
                 </div>
               </el-card>
             </el-col>
           </el-row>
-        </div>
-        
-        <!-- 所有图书 -->
-        <div class="section">
-          <div class="section-header">
-            <h2>全部图书</h2>
-          </div>
-          <el-row :gutter="20">
-            <el-col :span="6" v-for="book in bookList" :key="book.id">
-              <el-card class="book-card" shadow="hover" @click="navigateToDetail(book.id)">
-                <img :src="book.cover || '/default-book.jpg'" class="book-cover" />
-                <div class="book-info">
-                  <h3 class="book-title">{{ book.title }}</h3>
-                  <p class="book-author">{{ book.author }}</p>
-                  <div class="book-price-row">
-                    <span class="book-price">￥{{ book.price.toFixed(2) }}</span>
-                    <el-button 
-                      type="primary" 
-                      size="small" 
-                      circle 
-                      @click.stop="addToCart(book.id)"
-                      icon="ShoppingCart"
-                    ></el-button>
-                  </div>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-          
-          <!-- 分页 -->
-          <div class="pagination">
-            <el-pagination
-              background
-              layout="prev, pager, next"
-              :total="total"
-              :page-size="pageSize"
-              :current-page="currentPage"
-              @current-change="handlePageChange"
-            />
-          </div>
         </div>
       </el-main>
     </el-container>
@@ -347,6 +318,7 @@ onMounted(() => {
   justify-content: flex-start;
   padding: 20px;
   color: white;
+  cursor: pointer;
 }
 
 .carousel-title {

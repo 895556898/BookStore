@@ -157,17 +157,7 @@ const isLoggedIn = ref(false)
 
 // 获取认证请求头
 const getAuthHeaders = () => {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  }
-  
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-  
-  return headers
+  return userStore.getAuthHeaders();
 }
 
 // 检查登录状态
@@ -194,7 +184,12 @@ const fetchBookDetail = async () => {
   loading.value = true
   try {
     // 检查登录状态
-    checkLoginStatus()
+    const loggedIn = checkLoginStatus()
+    
+    // 如果本地有用户状态但没有检查过会话状态，先验证会话
+    if (loggedIn && !userStore.sessionChecked) {
+      await userStore.checkSession()
+    }
     
     const response = await fetch(`${baseUrl.value}/api/book/get/${bookId}`, {
       method: 'GET',

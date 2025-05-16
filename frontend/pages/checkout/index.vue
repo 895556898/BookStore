@@ -32,7 +32,7 @@
             <p class="address-detail">{{ getFullAddress(selectedAddress) }}</p>
           </div>
         </div>
-        
+
         <div v-else class="empty-address">
           <el-button type="primary" @click="showAddressDialog = true">添加收货地址</el-button>
         </div>
@@ -94,7 +94,6 @@
           <el-radio-group v-model="paymentMethod">
             <el-radio label="WECHAT">微信支付</el-radio>
             <el-radio label="ALIPAY">支付宝</el-radio>
-            <el-radio label="BANK_CARD">银行卡</el-radio>
           </el-radio-group>
         </div>
       </div>
@@ -174,12 +173,12 @@
             </el-radio>
           </div>
         </el-radio-group>
-        
+
         <div class="add-address">
           <el-button type="primary" @click="openAddressForm">新增收货地址</el-button>
         </div>
       </div>
-      
+
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showAddressDialog = false">取消</el-button>
@@ -187,7 +186,7 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 地址表单对话框 -->
     <el-dialog
       v-model="showAddressForm"
@@ -203,11 +202,11 @@
         <el-form-item label="收货人" prop="receiver">
           <el-input v-model="addressForm.receiver" />
         </el-form-item>
-        
+
         <el-form-item label="手机号码" prop="phone">
           <el-input v-model="addressForm.phone" />
         </el-form-item>
-        
+
         <el-form-item label="所在地区" prop="region">
           <el-cascader
             v-model="addressForm.region"
@@ -215,20 +214,20 @@
             placeholder="请选择省/市/区"
           />
         </el-form-item>
-        
+
         <el-form-item label="详细地址" prop="detailAddress">
           <el-input v-model="addressForm.detailAddress" type="textarea" :rows="2" />
         </el-form-item>
-        
+
         <el-form-item label="邮政编码" prop="zipCode">
           <el-input v-model="addressForm.zipCode" />
         </el-form-item>
-        
+
         <el-form-item>
           <el-checkbox v-model="addressForm.isDefault">设为默认地址</el-checkbox>
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showAddressForm = false">取消</el-button>
@@ -236,7 +235,7 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 支付确认对话框 -->
     <el-dialog
       v-model="showPaymentDialog"
@@ -388,7 +387,13 @@ const canSubmit = computed(() => {
 const getCheckoutItems = () => {
   const items = localStorage.getItem('checkoutItems')
   if (items) {
-    checkoutItems.value = JSON.parse(items)
+    try {
+      checkoutItems.value = JSON.parse(items)
+      console.log('获取到结算商品:', checkoutItems.value)
+    } catch (error) {
+      console.error('解析结算商品失败:', error)
+      checkoutItems.value = []
+    }
   } else {
     checkoutItems.value = []
   }
@@ -591,12 +596,29 @@ const submitOrder = async () => {
   
   if (checkoutItems.value.length === 0) {
     ElMessage.warning('没有可结算的商品')
-    return
+    console.log('当前结算商品:', checkoutItems.value)
+    // 尝试重新获取
+    getCheckoutItems()
+    if (checkoutItems.value.length === 0) {
+      return
+    }
   }
   
   submitting.value = true
   
   try {
+    // 构建收货地址
+    const regionLabels = getRegionLabels(addressForm.value.region)
+    const address = {
+      receiver: addressForm.value.receiver,
+      phone: addressForm.value.phone,
+      province: regionLabels[0] || '',
+      city: regionLabels[1] || '',
+      district: regionLabels[2] || '',
+      detailAddress: addressForm.value.detailAddress,
+      zipCode: addressForm.value.zipCode
+    }
+    
     // 构建订单请求参数
     const orderItems = checkoutItems.value.map(item => ({
       bookId: item.book.id,
@@ -604,14 +626,16 @@ const submitOrder = async () => {
     }))
     
     const orderRequest = {
-      addressId: selectedAddressId.value,
+      address: address, // 直接传递地址对象
       items: orderItems,
       paymentMethod: paymentMethod.value,
       remark: remark.value
     }
     
+    console.log('提交订单请求:', orderRequest)
+    
     // 发送创建订单请求
-    const response = await fetch('/api/order', {
+    const response = await fetch('http://localhost:8080/api/order', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -622,11 +646,16 @@ const submitOrder = async () => {
     
     const result = await response.json()
     if (result.code === 200) {
-      // 订单创建成功，显示支付对话框
+      // 订单创建成功
       createdOrderId.value = result.data.id
       localStorage.removeItem('checkoutItems') // 清除结算商品
-      showPaymentDialog.value = true
       ElMessage.success('订单创建成功')
+      
+      // 跳转到订单详情页展示订单信息
+      router.push({
+        path: `/orders/${result.data.id}`,
+        query: { orderInfo: JSON.stringify(result.data) }
+      })
     } else {
       ElMessage.error(result.message || '创建订单失败')
     }
@@ -687,7 +716,16 @@ const cancelPayment = () => {
 
 onMounted(() => {
   getCheckoutItems()
-  fetchAddresses()
+  
+  // 初始化地址表单
+  addressForm.value = {
+    receiver: '',
+    phone: '',
+    region: [],
+    detailAddress: '',
+    zipCode: '',
+    isDefault: false
+  }
 })
 </script>
 
@@ -767,6 +805,16 @@ onMounted(() => {
 
 .address-option {
   margin-bottom: 15px;
+  width: 100%;
+}
+
+.address-radio {
+  width: 100%;
+  display: block;
+}
+
+.address-radio :deep(.el-radio__label) {
+  width: 100%;
 }
 
 .address-actions {

@@ -5,7 +5,7 @@
         <div class="header-container">
           <div class="logo">
             <NuxtLink to="/" class="logo-link">
-              <h1>书城系统</h1>
+              <h1>小小书店</h1>
             </NuxtLink>
           </div>
           <div class="nav-menu">
@@ -32,9 +32,6 @@
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="navigateTo('/user/profile')">
-                      <el-icon><user /></el-icon> 个人资料
-                    </el-dropdown-item>
                     <el-dropdown-item @click="navigateTo('/user/orders')">
                       <el-icon><shopping-bag /></el-icon> 我的订单
                     </el-dropdown-item>

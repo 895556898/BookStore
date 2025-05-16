@@ -2,20 +2,32 @@ package com.zwj.backend.controller;
 
 import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.Result;
+import com.zwj.backend.entity.User;
 import com.zwj.backend.entity.dto.RegisterRequest;
+import com.zwj.backend.entity.dto.UserSessionResponse;
 import com.zwj.backend.service.Impl.UserService;
+import com.zwj.backend.service.Impl.SessionService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/user")
+@CrossOrigin(originPatterns = "*", allowCredentials = "true", maxAge = 3600)
 public class UserController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private SessionService sessionService;
 
     @Getter
     private final UserService service;
@@ -32,8 +44,54 @@ public class UserController {
 
     //检查是否登录
     @GetMapping("/check")
-    public StatusCode check(){
-        UserDetails user = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return StatusCode.LOGGED_IN;
+    public Result<Void> check(){
+        try {
+            UserDetails user = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            return Result.success(null);
+        } catch (Exception e) {
+            return Result.error(StatusCode.NOT_LOGGED_IN.getCode(), StatusCode.NOT_LOGGED_IN.getMsg());
+        }
+    }
+    
+    //通过用户名检查会话状态
+    @GetMapping("/checkSession")
+    public Result<UserSessionResponse> checkSessionByUsername(@RequestParam String username, HttpServletRequest request) {
+        // 检查用户是否存在
+        User user = userService.getUserEntityByUsername(username);
+        if (user == null) {
+            return Result.error(StatusCode.USER_NOT_EXIST.getCode(), StatusCode.USER_NOT_EXIST.getMsg());
+        }
+        
+        // 检查该用户是否有有效会话
+        boolean isLoggedIn = sessionService.isUserLoggedIn(username);
+        if (!isLoggedIn) {
+            return Result.error(StatusCode.NOT_LOGGED_IN.getCode(), StatusCode.NOT_LOGGED_IN.getMsg());
+        }
+        
+        // 获取用户的会话ID
+        String sessionId = sessionService.getSessionId(username);
+        HttpSession currentSession = request.getSession(false);
+        
+        // 创建响应对象
+        UserSessionResponse response = new UserSessionResponse();
+        response.setSessionValid(isLoggedIn);
+        
+        // 如果当前请求的会话ID与存储的用户会话ID匹配，则直接使用
+        if (currentSession != null && currentSession.getId().equals(sessionId)) {
+            response.setCurrentSession(true);
+            
+            // 返回用户信息但不包含敏感数据
+            User userInfo = new User();
+            userInfo.setId(user.getId());
+            userInfo.setUsername(user.getUsername());
+            userInfo.setPhone(user.getPhone());
+            userInfo.setRole(user.getRole());
+            
+            response.setUser(userInfo);
+        } else {
+            response.setCurrentSession(false);
+        }
+        
+        return Result.success(response);
     }
 }
