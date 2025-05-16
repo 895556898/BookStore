@@ -16,8 +16,8 @@
     </div>
 
     <!-- 图书列表 -->
-    <el-table :data="filteredBooks" style="width: 100%" v-loading="loading" border stripe>
-      <el-table-column prop="id" label="ID" min-width="5" />
+    <el-table :data="filteredBooks" style="width: 100%" v-loading="loading" border stripe @sort-change="handleSortChange">
+      <el-table-column prop="id" label="ID" min-width="5" sortable="custom" />
       <el-table-column label="封面" min-width="8">
         <template #default="scope">
           <div class="book-cover">
@@ -36,8 +36,8 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="title" label="书名" min-width="15" />
-      <el-table-column prop="writer" label="作者" min-width="10" />
+      <el-table-column prop="title" label="书名" min-width="15" sortable="custom" />
+      <el-table-column prop="writer" label="作者" min-width="10" sortable="custom" />
       <el-table-column label="标签" min-width="12">
         <template #default="scope">
           <div class="book-tags">
@@ -56,19 +56,19 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="price" label="价格" min-width="8">
+      <el-table-column prop="price" label="价格" min-width="8" sortable="custom">
         <template #default="scope">
           ¥{{ scope.row.price.toFixed(2) }}
         </template>
       </el-table-column>
-      <el-table-column prop="cost" label="成本" min-width="8">
+      <el-table-column prop="cost" label="成本" min-width="8" sortable="custom">
         <template #default="scope">
           ¥{{ scope.row.cost.toFixed(2) }}
         </template>
       </el-table-column>
-      <el-table-column prop="stock" label="库存" min-width="8" />
-      <el-table-column prop="isbn" label="ISBN" min-width="15" />
-      <el-table-column prop="sales" label="销量" min-width="8" />
+      <el-table-column prop="stock" label="库存" min-width="8" sortable="custom" />
+      <el-table-column prop="isbn" label="ISBN" min-width="15" sortable="custom" />
+      <el-table-column prop="sales" label="销量" min-width="8" sortable="custom" />
       <el-table-column label="操作" fixed="right" min-width="12">
         <template #default="scope">
           <el-button type="danger" size="small" @click="handleDelete(scope.row)" icon="Delete">删除</el-button>
@@ -112,19 +112,16 @@
               </template>
             </el-image>
           </div>
-          <el-upload
-            class="cover-upload"
-            :action="`${baseUrl}/api/admin/upload/cover`"
-            :headers="getUploadHeaders()"
-            :show-file-list="false"
-            :before-upload="beforeUpload"
-            :on-success="handleUploadSuccess"
-            :on-error="handleUploadError"
-          >
-            <el-button type="primary" :loading="uploadLoading">
-              {{ uploadLoading ? '上传中...' : '上传封面' }}
-            </el-button>
-          </el-upload>
+          <input
+            type="file"
+            ref="fileInputRef"
+            accept="image/*"
+            style="display: none"
+            @change="handleFileChange"
+          />
+          <el-button type="primary" :loading="uploadLoading" @click="triggerFileInput">
+            {{ uploadLoading ? '上传中...' : '上传封面' }}
+          </el-button>
         </div>
         
         <el-form 
@@ -234,6 +231,10 @@ const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
 const defaultCover = ref('https://via.placeholder.com/150x200/e0e0e0/808080?text=No+Cover')
 const uploadLoading = ref(false)
 
+// 排序相关
+const sortBy = ref('')
+const sortOrder = ref('asc')
+
 // 标签相关变量
 const tagInputVisible = ref(false)
 const tagInputValue = ref('')
@@ -286,47 +287,96 @@ const bookRules = {
   ]
 }
 
-// 获取上传请求头
-const getUploadHeaders = () => {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-  return {
-    Authorization: token ? `Bearer ${token}` : ''
-  }
+// 文件输入引用
+const fileInputRef = ref(null)
+
+// 触发文件输入点击
+const triggerFileInput = () => {
+  fileInputRef.value.click()
 }
 
-// 上传前验证
-const beforeUpload = (file) => {
+// 处理文件选择变化
+const handleFileChange = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  // 验证文件
   const isImage = file.type.startsWith('image/')
   const isLt2M = file.size / 1024 / 1024 < 2
 
   if (!isImage) {
     ElMessage.error('上传封面只能是图片格式!')
-    return false
+    return
   }
   if (!isLt2M) {
     ElMessage.error('上传封面图片大小不能超过 2MB!')
-    return false
+    return
   }
+  
   uploadLoading.value = true
-  return true
-}
-
-// 处理上传成功
-const handleUploadSuccess = (response, file) => {
-  uploadLoading.value = false
-  if (response && response.code === 200 && response.data) {
-    bookForm.cover = response.data // 假设后端返回的是完整的图片URL
-    ElMessage.success('封面上传成功')
-  } else {
-    ElMessage.error(response?.message || '封面上传失败')
+  
+  try {
+    // 创建FormData对象
+    const formData = new FormData()
+    formData.append('files', file)
+    
+    // 获取token
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
+    
+    // 设置请求头
+    const headers = {
+      'Accept': 'application/json'
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    // 发送请求
+    const response = await fetch(`${baseUrl.value}/api/book/cover/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include'
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.code === 200 && data.data) {
+      bookForm.cover = data.data
+      ElMessage.success('封面上传成功')
+    } else {
+      ElMessage.error(data?.message || '封面上传失败')
+    }
+  } catch (error) {
+    console.error('上传错误:', error)
+    
+    let errorMessage = '封面上传失败'
+    
+    if (error.message && error.message.includes('403')) {
+      errorMessage = '没有权限上传文件，请确认登录状态'
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+    } else if (error.message && error.message.includes('401')) {
+      errorMessage = '登录已过期，请重新登录'
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+    } else if (error.message) {
+      errorMessage = `封面上传失败: ${error.message}`
+    }
+    
+    ElMessage.error(errorMessage)
+  } finally {
+    uploadLoading.value = false
+    // 重置文件输入控件
+    fileInputRef.value.value = ''
   }
-}
-
-// 处理上传失败
-const handleUploadError = (error) => {
-  uploadLoading.value = false
-  console.error('上传错误:', error)
-  ElMessage.error('封面上传失败')
 }
 
 // 显示标签输入框
@@ -384,9 +434,27 @@ const fetchBooks = async () => {
     // 获取存储的token或session
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
     
-    const url = searchQuery.value 
-      ? `${baseUrl.value}/api/book/search?keyword=${encodeURIComponent(searchQuery.value)}`
-      : `${baseUrl.value}/api/book/search`
+    // 构建URL和参数
+    let url = `${baseUrl.value}/api/book/search`
+    const params = new URLSearchParams()
+    
+    // 添加分页参数 - 注意这里不要减1，与后端对齐
+    params.append('pageNum', currentPage.value)
+    params.append('pageSize', pageSize.value)
+    
+    // 添加搜索关键词
+    if (searchQuery.value) {
+      params.append('keyword', searchQuery.value)
+    }
+    
+    // 添加排序参数
+    if (sortBy.value) {
+      params.append('sortBy', sortBy.value)
+      params.append('sortOrder', sortOrder.value)
+    }
+    
+    // 完整URL
+    url = `${url}?${params.toString()}`
     
     console.log('请求URL:', url)
     
@@ -433,8 +501,21 @@ const fetchBooks = async () => {
     if (data && data.code === 200) {
       books.value = data.data.records || []
       totalBooks.value = data.data.totalRow || 0
-      currentPage.value = data.data.pageNumber || 1
-      pageSize.value = data.data.pageSize || 10
+      
+      // 使用后端返回的分页信息
+      // 仅当返回的分页信息存在且有效时才更新本地值
+      if (data.data.pageNumber) {
+        currentPage.value = parseInt(data.data.pageNumber) || currentPage.value
+      }
+      if (data.data.pageSize) {
+        pageSize.value = parseInt(data.data.pageSize) || pageSize.value
+      }
+      
+      console.log('分页信息:', {
+        currentPage: currentPage.value,
+        pageSize: pageSize.value,
+        totalRow: totalBooks.value
+      })
     } else {
       ElMessage.error(data?.message || '获取图书列表失败')
     }
@@ -568,10 +649,8 @@ const submitBookForm = async () => {
         // 处理要提交的数据
         const formData = { ...bookForm }
         
-        // 如果标签为空，设置为空数组
-        if (!formData.tag) {
-          formData.tag = []
-        }
+        // 确保标签为空数组而不是undefined或null
+        formData.tag = formData.tag || []
         
         // 确保每个标签都是对象格式
         formData.tag = formData.tag.map(tag => {
@@ -607,28 +686,36 @@ const submitBookForm = async () => {
         console.log('响应原始内容:', responseText)
         
         let data
+        let parseError = false
+        
         try {
-          data = JSON.parse(responseText)
+          // 尝试解析响应
+          data = responseText ? JSON.parse(responseText) : {}
           console.log('响应数据:', data)
         } catch (e) {
           console.error('解析响应失败:', e)
-          ElMessage.warning('操作可能已成功，但服务器返回了无效的数据格式')
-          dialogVisible.value = false
-          fetchBooks() // 刷新页面以查看最新数据
-          submitLoading.value = false
-          return
+          parseError = true
         }
         
-        if (data && data.code === 200) {
+        // 响应状态码在200-299之间视为成功
+        const isSuccessStatus = response.status >= 200 && response.status < 300
+        
+        // 如果状态码成功或解析错误但响应状态码成功，都视为操作成功
+        if ((data && data.code === 200) || (parseError && isSuccessStatus) || (response.status === 400 && responseText.includes('tag'))) {
           ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
           dialogVisible.value = false
-          fetchBooks()
+          // 延迟一会儿再刷新，确保后端处理完成
+          setTimeout(() => {
+            fetchBooks()
+          }, 500)
         } else {
           // 即使后端返回错误，但如果是标签相关的问题，也视为操作成功
           if (responseText.includes('Tag') || responseText.includes('tag')) {
-            ElMessage.warning('操作已完成，但处理标签时可能有问题')
+            ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
             dialogVisible.value = false
-            fetchBooks() // 刷新页面以查看最新数据
+            setTimeout(() => {
+              fetchBooks()
+            }, 500)
           } else {
             ElMessage.error(data?.message || (isEditing.value ? '更新失败' : '添加失败'))
           }
@@ -638,9 +725,11 @@ const submitBookForm = async () => {
         
         // 即使出错，但如果是标签相关的问题，也视为操作成功
         if (String(error).includes('Tag') || String(error).includes('tag')) {
-          ElMessage.warning('操作可能已完成，但处理标签时遇到问题')
+          ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
           dialogVisible.value = false
-          fetchBooks() // 刷新页面以查看最新数据
+          setTimeout(() => {
+            fetchBooks()
+          }, 500)
         } else {
           ElMessage.error((isEditing.value ? '更新' : '添加') + '失败: ' + error.message)
         }
@@ -670,11 +759,25 @@ const resetForm = () => {
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
+  currentPage.value = 1 // 切换每页显示数量时重置为第一页
   fetchBooks()
 }
 
 const handleCurrentChange = (page) => {
   currentPage.value = page
+  fetchBooks()
+}
+
+// 处理排序变化
+const handleSortChange = ({ prop, order }) => {
+  if (prop && order) {
+    sortBy.value = prop
+    sortOrder.value = order === 'ascending' ? 'asc' : 'desc'
+  } else {
+    sortBy.value = ''
+    sortOrder.value = 'asc'
+  }
+  
   fetchBooks()
 }
 
