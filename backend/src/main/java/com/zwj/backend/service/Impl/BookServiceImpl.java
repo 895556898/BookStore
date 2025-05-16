@@ -199,11 +199,13 @@ public class BookServiceImpl implements BookService {
         Long bookId = (bookMapper.selectOneByQuery(QueryWrapper.create()
                 .where(BOOK.TITLE.eq(book.getTitle())))).getId();
 
+        System.out.println(book.getTag() == null);
+
         if (affectedRows1.get() > 0 && book.getTag() != null && !book.getTag().isEmpty()) {
             // 保存标签关联
             setBookTag(bookId, book);
             return Result.success(null);
-        } else if (affectedRows1.get() > 0 && book.getTag() == null) {
+        } else if (affectedRows1.get() > 0) {
             return Result.success(null);
         } else {
             return Result.error(400,"添加失败");
