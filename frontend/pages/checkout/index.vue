@@ -21,21 +21,38 @@
       <div class="section">
         <div class="section-title">
           <h2>收货地址</h2>
-          <el-button type="primary" link @click="showAddressDialog = true">
-            {{ selectedAddress ? '修改地址' : '添加地址' }}
-          </el-button>
         </div>
         
-        <div v-if="selectedAddress" class="address-card">
-          <div class="address-info">
-            <p><span class="receiver">{{ selectedAddress.receiver }}</span> <span class="phone">{{ selectedAddress.phone }}</span></p>
-            <p class="address-detail">{{ getFullAddress(selectedAddress) }}</p>
-          </div>
-        </div>
+        <el-form
+          ref="addressFormRef"
+          :model="addressForm"
+          :rules="addressRules"
+          label-width="100px"
+        >
+          <el-form-item label="收货人" prop="receiver">
+            <el-input v-model="addressForm.receiver" />
+          </el-form-item>
 
-        <div v-else class="empty-address">
-          <el-button type="primary" @click="showAddressDialog = true">添加收货地址</el-button>
-        </div>
+          <el-form-item label="手机号码" prop="phone">
+            <el-input v-model="addressForm.phone" />
+          </el-form-item>
+
+          <el-form-item label="所在地区" prop="region">
+            <el-cascader
+              v-model="addressForm.region"
+              :options="regionOptions"
+              placeholder="请选择省/市/区"
+            />
+          </el-form-item>
+
+          <el-form-item label="详细地址" prop="detailAddress">
+            <el-input v-model="addressForm.detailAddress" type="textarea" :rows="2" />
+          </el-form-item>
+
+          <el-form-item label="邮政编码" prop="zipCode">
+            <el-input v-model="addressForm.zipCode" />
+          </el-form-item>
+        </el-form>
       </div>
       
       <!-- 订单商品 -->
@@ -142,99 +159,6 @@
         </div>
       </div>
     </div>
-    
-    <!-- 地址选择对话框 -->
-    <el-dialog
-      v-model="showAddressDialog"
-      title="选择收货地址"
-      width="50%"
-    >
-      <div class="address-list">
-        <el-radio-group v-model="selectedAddressId">
-          <div v-for="address in addresses" :key="address.id" class="address-option">
-            <el-radio :label="address.id">
-              <div class="address-card">
-                <div class="address-info">
-                  <p>
-                    <span class="receiver">{{ address.receiver }}</span>
-                    <span class="phone">{{ address.phone }}</span>
-                  </p>
-                  <p class="address-detail">{{ getFullAddress(address) }}</p>
-                </div>
-                <div class="address-actions">
-                  <el-button type="primary" link size="small" @click.stop="editAddress(address)">
-                    编辑
-                  </el-button>
-                  <el-button type="danger" link size="small" @click.stop="deleteAddress(address.id)">
-                    删除
-                  </el-button>
-                </div>
-              </div>
-            </el-radio>
-          </div>
-        </el-radio-group>
-
-        <div class="add-address">
-          <el-button type="primary" @click="openAddressForm">新增收货地址</el-button>
-        </div>
-      </div>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showAddressDialog = false">取消</el-button>
-          <el-button type="primary" @click="confirmAddressSelection">确认</el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 地址表单对话框 -->
-    <el-dialog
-      v-model="showAddressForm"
-      :title="editingAddress ? '修改地址' : '新增地址'"
-      width="40%"
-    >
-      <el-form
-        ref="addressFormRef"
-        :model="addressForm"
-        :rules="addressRules"
-        label-width="100px"
-      >
-        <el-form-item label="收货人" prop="receiver">
-          <el-input v-model="addressForm.receiver" />
-        </el-form-item>
-
-        <el-form-item label="手机号码" prop="phone">
-          <el-input v-model="addressForm.phone" />
-        </el-form-item>
-
-        <el-form-item label="所在地区" prop="region">
-          <el-cascader
-            v-model="addressForm.region"
-            :options="regionOptions"
-            placeholder="请选择省/市/区"
-          />
-        </el-form-item>
-
-        <el-form-item label="详细地址" prop="detailAddress">
-          <el-input v-model="addressForm.detailAddress" type="textarea" :rows="2" />
-        </el-form-item>
-
-        <el-form-item label="邮政编码" prop="zipCode">
-          <el-input v-model="addressForm.zipCode" />
-        </el-form-item>
-
-        <el-form-item>
-          <el-checkbox v-model="addressForm.isDefault">设为默认地址</el-checkbox>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showAddressForm = false">取消</el-button>
-          <el-button type="primary" @click="saveAddress">保存</el-button>
-        </span>
-      </template>
-    </el-dialog>
 
     <!-- 支付确认对话框 -->
     <el-dialog
@@ -280,8 +204,6 @@ const selectedAddressId = ref('')
 const paymentMethod = ref('ALIPAY')
 const remark = ref('')
 const shipping = ref(10) // 运费
-const showAddressDialog = ref(false)
-const showAddressForm = ref(false)
 const showPaymentDialog = ref(false)
 const addressForm = ref({
   receiver: '',
@@ -291,8 +213,6 @@ const addressForm = ref({
   zipCode: '',
   isDefault: false
 })
-const editingAddress = ref(false)
-const editingAddressId = ref(null)
 const createdOrderId = ref('')
 
 // 地址表单验证规则
@@ -366,13 +286,6 @@ const calculateSubtotal = (item) => {
   return price * item.quantity
 }
 
-// 获取完整地址文本
-const getFullAddress = (address) => {
-  if (!address) return ''
-  const regionText = address.region ? `${address.province} ${address.city} ${address.district}` : ''
-  return `${regionText} ${address.detailAddress} ${address.zipCode ? `(${address.zipCode})` : ''}`
-}
-
 // 选中的地址
 const selectedAddress = computed(() => {
   return addresses.value.find(addr => addr.id === selectedAddressId.value)
@@ -398,177 +311,6 @@ const getCheckoutItems = () => {
     checkoutItems.value = []
   }
   loading.value = false
-}
-
-// 获取用户地址列表
-const fetchAddresses = async () => {
-  // 模拟获取地址
-  // 实际项目中应该从API获取
-  addresses.value = [
-    {
-      id: 1,
-      receiver: '张三',
-      phone: '13812345678',
-      province: '北京市',
-      city: '北京市',
-      district: '朝阳区',
-      detailAddress: '三里屯街道10号',
-      zipCode: '100020',
-      isDefault: true,
-      region: ['110000', '110100', '110105']
-    },
-    {
-      id: 2,
-      receiver: '李四',
-      phone: '13987654321',
-      province: '上海市',
-      city: '上海市',
-      district: '黄浦区',
-      detailAddress: '南京路123号',
-      zipCode: '200001',
-      isDefault: false,
-      region: ['310000', '310100', '310101']
-    }
-  ]
-  
-  // 设置默认地址
-  const defaultAddress = addresses.value.find(addr => addr.isDefault)
-  if (defaultAddress) {
-    selectedAddressId.value = defaultAddress.id
-  } else if (addresses.value.length > 0) {
-    selectedAddressId.value = addresses.value[0].id
-  }
-}
-
-// 确认地址选择
-const confirmAddressSelection = () => {
-  showAddressDialog.value = false
-}
-
-// 打开地址表单
-const openAddressForm = () => {
-  editingAddress.value = false
-  editingAddressId.value = null
-  addressForm.value = {
-    receiver: '',
-    phone: '',
-    region: [],
-    detailAddress: '',
-    zipCode: '',
-    isDefault: false
-  }
-  showAddressForm.value = true
-}
-
-// 编辑地址
-const editAddress = (address) => {
-  editingAddress.value = true
-  editingAddressId.value = address.id
-  addressForm.value = {
-    receiver: address.receiver,
-    phone: address.phone,
-    region: address.region,
-    detailAddress: address.detailAddress,
-    zipCode: address.zipCode,
-    isDefault: address.isDefault
-  }
-  showAddressForm.value = true
-}
-
-// 删除地址
-const deleteAddress = (addressId) => {
-  ElMessageBox.confirm('确定要删除该地址吗?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    // 模拟删除地址
-    addresses.value = addresses.value.filter(addr => addr.id !== addressId)
-    
-    if (selectedAddressId.value === addressId) {
-      const defaultAddress = addresses.value.find(addr => addr.isDefault)
-      if (defaultAddress) {
-        selectedAddressId.value = defaultAddress.id
-      } else if (addresses.value.length > 0) {
-        selectedAddressId.value = addresses.value[0].id
-      } else {
-        selectedAddressId.value = ''
-      }
-    }
-    
-    ElMessage.success('删除地址成功')
-  }).catch(() => {})
-}
-
-// 保存地址
-const saveAddress = async () => {
-  const formRef = document.querySelector('#addressFormRef')
-  
-  // 模拟表单验证(实际上ElementPlus的验证机制会更复杂)
-  if (!addressForm.value.receiver || !addressForm.value.phone || !addressForm.value.region || !addressForm.value.detailAddress) {
-    ElMessage.error('请填写必填项')
-    return
-  }
-  
-  // 模拟保存地址
-  const regionLabels = getRegionLabels(addressForm.value.region)
-  
-  if (editingAddress.value) {
-    // 更新现有地址
-    const index = addresses.value.findIndex(addr => addr.id === editingAddressId.value)
-    if (index !== -1) {
-      addresses.value[index] = {
-        ...addresses.value[index],
-        receiver: addressForm.value.receiver,
-        phone: addressForm.value.phone,
-        province: regionLabels[0] || '',
-        city: regionLabels[1] || '',
-        district: regionLabels[2] || '',
-        region: addressForm.value.region,
-        detailAddress: addressForm.value.detailAddress,
-        zipCode: addressForm.value.zipCode,
-        isDefault: addressForm.value.isDefault
-      }
-      
-      // 如果设为默认地址，其他地址取消默认
-      if (addressForm.value.isDefault) {
-        addresses.value.forEach(addr => {
-          if (addr.id !== editingAddressId.value) {
-            addr.isDefault = false
-          }
-        })
-      }
-    }
-  } else {
-    // 添加新地址
-    const newAddress = {
-      id: Date.now(), // 模拟生成ID
-      receiver: addressForm.value.receiver,
-      phone: addressForm.value.phone,
-      province: regionLabels[0] || '',
-      city: regionLabels[1] || '',
-      district: regionLabels[2] || '',
-      region: addressForm.value.region,
-      detailAddress: addressForm.value.detailAddress,
-      zipCode: addressForm.value.zipCode,
-      isDefault: addressForm.value.isDefault
-    }
-    
-    addresses.value.push(newAddress)
-    selectedAddressId.value = newAddress.id
-    
-    // 如果设为默认地址，其他地址取消默认
-    if (newAddress.isDefault) {
-      addresses.value.forEach(addr => {
-        if (addr.id !== newAddress.id) {
-          addr.isDefault = false
-        }
-      })
-    }
-  }
-  
-  showAddressForm.value = false
-  ElMessage.success(editingAddress.value ? '修改地址成功' : '添加地址成功')
 }
 
 // 获取地区标签
@@ -681,7 +423,7 @@ const getPaymentMethodText = () => {
 const confirmPayment = async () => {
   try {
     // 发送支付请求
-    const response = await fetch(`/api/order/${createdOrderId.value}/pay?paymentMethod=${paymentMethod.value}`, {
+    const response = await fetch(`${baseUrl.value}/api/order/${createdOrderId.value}/pay?paymentMethod=${paymentMethod.value}`, {
       method: 'POST',
       credentials: 'include'
     })
