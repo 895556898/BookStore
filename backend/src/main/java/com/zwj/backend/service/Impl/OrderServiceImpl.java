@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.OrderTableDef.ORDER;
 import static com.zwj.backend.entity.table.OrderItemTableDef.ORDER_ITEM;
+import static com.zwj.backend.entity.table.OrderAddressTableDef.ORDER_ADDRESS;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -57,6 +58,9 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired
     private OrderTransactionMapper orderTransactionMapper;
+    
+    @Autowired
+    private OrderAddressMapper orderAddressMapper;
     
     // 获取当前登录用户
     private User getCurrentUser() {
@@ -94,6 +98,12 @@ public class OrderServiceImpl implements OrderService {
             }
             
             order.setOrderItems(orderItems);
+            
+            // 加载订单地址信息
+            OrderAddress address = QueryChain.of(orderAddressMapper)
+                    .where(ORDER_ADDRESS.ORDER_ID.eq(order.getId()))
+                    .one();
+            order.setAddress(address);
         }
 
         return Result.success(orders);
@@ -117,6 +127,11 @@ public class OrderServiceImpl implements OrderService {
             return Result.error(400, "订单项不能为空");
         }
 
+        // 检查地址信息
+        if (request.getAddressInfo() == null) {
+            return Result.error(400, "收货地址不能为空");
+        }
+
         // 计算总价并检查库存
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderRequest.OrderItemRequest> orderItems = request.getItems();
@@ -137,15 +152,20 @@ public class OrderServiceImpl implements OrderService {
         order.setUserId(currentUser.getId());
         order.setTotalAmount(totalAmount);
         order.setStatus("PENDING"); // 待付款
+        order.setRemark(request.getRemark()); // 设置订单备注
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
+        order.setPaymentMethod(request.getPaymentMethod()); // 设置支付方式
 
         orderMapper.insertOrder(order);
 
         // 创建订单项
         List<OrderItem> orderItemsList = new ArrayList<>();
+        List<Long> bookIds = new ArrayList<>(); // 用于记录处理的图书ID，用于后续清空购物车
+
         for (OrderRequest.OrderItemRequest item : orderItems) {
             Book book = bookMapper.selectOneById(item.getBookId());
+            bookIds.add(item.getBookId()); // 记录图书ID
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(order.getId());
@@ -162,8 +182,53 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setBook(book);
             orderItemsList.add(orderItem);
         }
-        
+
+        // 清空购物车中已下单的商品
+        if (!bookIds.isEmpty()) {
+            try {
+                // 从购物车中删除这些图书
+                cartItemMapper.deleteByQuery(
+                    QueryWrapper.create()
+                        .where("user_id = ?", currentUser.getId())
+                        .and("book_id in (" + String.join(",", bookIds.stream().map(String::valueOf).collect(Collectors.toList())) + ")")
+                );
+            } catch (Exception e) {
+                System.err.println("清空购物车失败: " + e.getMessage());
+                // 不影响主流程，即使清空购物车失败，订单创建仍然成功
+            }
+        }
+
         order.setOrderItems(orderItemsList);
+        
+        // 保存地址信息
+        OrderAddress address = new OrderAddress();
+        address.setOrderId(order.getId());
+        address.setReceiver(request.getAddressInfo().getReceiver());
+        address.setPhone(request.getAddressInfo().getPhone());
+        
+        // 处理地区信息
+        List<String> region = request.getAddressInfo().getRegion();
+        if (region != null && region.size() >= 3) {
+            // 将地区代码转换为实际地区名称
+            String provinceCode = region.get(0);
+            String cityCode = region.get(1);
+            String districtCode = region.get(2);
+            
+            address.setProvince(getRegionNameByCode(provinceCode));
+            address.setCity(getRegionNameByCode(cityCode));
+            address.setDistrict(getRegionNameByCode(districtCode));
+        }
+        
+        address.setDetailAddress(request.getAddressInfo().getDetailAddress());
+        address.setZipCode(request.getAddressInfo().getZipCode());
+        address.setIsDefault(request.getAddressInfo().getIsDefault());
+        address.setCreateTime(LocalDateTime.now());
+        address.setUpdateTime(LocalDateTime.now());
+        
+        orderAddressMapper.insert(address);
+        
+        // 设置订单地址
+        order.setAddress(address);
         
         // 设置用户信息
         setUser(order, currentUser);
@@ -203,6 +268,11 @@ public class OrderServiceImpl implements OrderService {
         if (!"CANCELLED".equals(order.getStatus())) {
             return Result.error(400, "只能删除已取消的订单");
         }
+
+        // 删除订单地址
+        orderAddressMapper.deleteByQuery(
+                QueryWrapper.create().where(ORDER_ADDRESS.ORDER_ID.eq(id))
+        );
 
         // 删除订单项
         orderItemMapper.deleteByQuery(
@@ -384,6 +454,12 @@ public class OrderServiceImpl implements OrderService {
 
         order.setOrderItems(orderItems);
         
+        // 加载订单地址信息
+        OrderAddress address = QueryChain.of(orderAddressMapper)
+                .where(ORDER_ADDRESS.ORDER_ID.eq(order.getId()))
+                .one();
+        order.setAddress(address);
+
         return Result.success(order);
     }
 
@@ -532,5 +608,28 @@ public class OrderServiceImpl implements OrderService {
         user.setEmail(currentUser.getEmail());
 
         order.setUser(user);
+    }
+
+    // 实现地区代码到名称的转换方法
+    private String getRegionNameByCode(String code) {
+        // 这里是一个简化的实现，真实项目中应该从数据库或配置文件获取
+        // 北京市
+        if ("110000".equals(code)) return "北京市";
+        if ("110100".equals(code)) return "北京市";
+        if ("110101".equals(code)) return "东城区";
+        if ("110102".equals(code)) return "西城区";
+        if ("110105".equals(code)) return "朝阳区";
+        if ("110106".equals(code)) return "丰台区";
+        
+        // 上海市
+        if ("310000".equals(code)) return "上海市";
+        if ("310100".equals(code)) return "上海市";
+        if ("310101".equals(code)) return "黄浦区";
+        if ("310104".equals(code)) return "徐汇区";
+        if ("310112".equals(code)) return "闵行区";
+        if ("310114".equals(code)) return "嘉定区";
+        
+        // 如果找不到对应的名称，则返回原始代码
+        return code;
     }
 } 

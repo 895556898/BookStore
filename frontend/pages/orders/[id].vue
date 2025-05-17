@@ -137,10 +137,6 @@
             <span>￥{{ calculateSubtotal().toFixed(2) }}</span>
           </div>
           <div class="price-item">
-            <span class="label">运费：</span>
-            <span>￥{{ order.shippingFee?.toFixed(2) || '0.00' }}</span>
-          </div>
-          <div class="price-item">
             <span class="label">优惠：</span>
             <span>-￥{{ order.discount?.toFixed(2) || '0.00' }}</span>
           </div>

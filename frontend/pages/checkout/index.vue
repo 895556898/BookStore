@@ -137,13 +137,10 @@
           <span>商品金额：</span>
           <span>￥{{ totalAmount.toFixed(2) }}</span>
         </div>
-        <div class="summary-item">
-          <span>运费：</span>
-          <span>￥{{ shipping.toFixed(2) }}</span>
         </div>
         <div class="summary-item total">
           <span>应付金额：</span>
-          <span class="total-price">￥{{ (totalAmount + shipping).toFixed(2) }}</span>
+          <span class="total-price">￥{{ (totalAmount).toFixed(2) }}</span>
         </div>
         
         <div class="submit-order">
@@ -157,7 +154,6 @@
           </el-button>
         </div>
       </div>
-    </div>
 
     <!-- 支付确认对话框 -->
     <el-dialog
@@ -168,7 +164,7 @@
     >
       <div class="payment-dialog-content">
         <p>订单号：{{ createdOrderId }}</p>
-        <p>支付金额：<span class="total-price">￥{{ (totalAmount + shipping).toFixed(2) }}</span></p>
+        <p>支付金额：<span class="total-price">￥{{ (totalAmount).toFixed(2) }}</span></p>
         <p>支付方式：{{ getPaymentMethodText() }}</p>
         
         <div class="payment-qr-code">
@@ -198,11 +194,8 @@ const router = useRouter()
 const loading = ref(true)
 const submitting = ref(false)
 const checkoutItems = ref([])
-const addresses = ref([])
-const selectedAddressId = ref('')
 const paymentMethod = ref('ALIPAY')
 const remark = ref('')
-const shipping = ref(5) // 运费
 const showPaymentDialog = ref(false)
 const addressFormRef = ref(null) // 添加表单引用
 const addressForm = ref({
@@ -286,16 +279,6 @@ const calculateSubtotal = (item) => {
   return price * item.quantity
 }
 
-// 选中的地址
-const selectedAddress = computed(() => {
-  return addresses.value.find(addr => addr.id === selectedAddressId.value)
-})
-
-// 是否可以提交订单
-const canSubmit = computed(() => {
-  return checkoutItems.value.length > 0 && selectedAddressId.value
-})
-
 // 从本地存储获取结算商品
 const getCheckoutItems = () => {
   const items = localStorage.getItem('checkoutItems')
@@ -311,22 +294,6 @@ const getCheckoutItems = () => {
     checkoutItems.value = []
   }
   loading.value = false
-}
-
-// 获取地区标签
-const getRegionLabels = (regionCodes) => {
-  const labels = []
-  let options = regionOptions
-  
-  for (const code of regionCodes) {
-    const option = options.find(opt => opt.value === code)
-    if (option) {
-      labels.push(option.label)
-      options = option.children || []
-    }
-  }
-  
-  return labels
 }
 
 // 提交订单
@@ -526,56 +493,8 @@ onMounted(() => {
   margin: 0;
 }
 
-.empty-address {
-  text-align: center;
-  padding: 30px 0;
-}
-
-.address-card {
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-}
-
 .address-info p {
   margin: 5px 0;
-}
-
-.receiver {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.phone {
-  color: #666;
-}
-
-.address-detail {
-  color: #333;
-}
-
-.address-option {
-  margin-bottom: 15px;
-  width: 100%;
-}
-
-.address-radio {
-  width: 100%;
-  display: block;
-}
-
-.address-radio :deep(.el-radio__label) {
-  width: 100%;
-}
-
-.address-actions {
-  margin-top: 10px;
-  text-align: right;
-}
-
-.add-address {
-  margin-top: 20px;
-  text-align: center;
 }
 
 .checkout-item {

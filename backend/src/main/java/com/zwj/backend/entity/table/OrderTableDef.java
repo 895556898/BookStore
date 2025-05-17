@@ -11,12 +11,14 @@ public class OrderTableDef extends TableDef {
     public final QueryColumn USER_ID = new QueryColumn(this, "user_id");
     public final QueryColumn TOTAL_AMOUNT = new QueryColumn(this, "total_amount");
     public final QueryColumn STATUS = new QueryColumn(this, "status");
+    public final QueryColumn REMARK = new QueryColumn(this, "remark");
+    public final QueryColumn PAYMENT_METHOD = new QueryColumn(this, "payment_method");
     public final QueryColumn PAYMENT_TIME = new QueryColumn(this, "payment_time");
     public final QueryColumn CREATE_TIME = new QueryColumn(this, "create_time");
     public final QueryColumn UPDATE_TIME = new QueryColumn(this, "update_time");
     
     public final QueryColumn[] ALL_COLUMNS = new QueryColumn[] {
-            ID, USER_ID, TOTAL_AMOUNT, STATUS, PAYMENT_TIME, CREATE_TIME, UPDATE_TIME
+            ID, USER_ID, TOTAL_AMOUNT, STATUS, REMARK, PAYMENT_METHOD, PAYMENT_TIME, CREATE_TIME, UPDATE_TIME
     };
     
     public OrderTableDef() {

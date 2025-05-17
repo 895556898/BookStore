@@ -20,6 +20,8 @@ public class Order {                     //订单
     private Long userId;
     private BigDecimal totalAmount;
     private String status; // PENDING, PAID, CANCELLED
+    private String remark; // 订单备注
+    private String paymentMethod; // 支付方式
     private LocalDateTime paymentTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -27,4 +29,5 @@ public class Order {                     //订单
     // 非表字段，用于前端展示
     private transient List<OrderItem> orderItems;
     private transient User user;
+    private transient OrderAddress address; // 订单地址
 } 
