@@ -29,6 +29,7 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("hasRole('USER')")
     public Result<Order> createOrder(@RequestBody OrderRequest request) {
+        System.out.println(request);
         return orderService.addOrder(request);
     }
 

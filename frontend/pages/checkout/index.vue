@@ -150,7 +150,6 @@
           <el-button 
             type="danger" 
             size="large" 
-            :disabled="!canSubmit"
             @click="submitOrder"
             :loading="submitting"
           >
@@ -203,8 +202,9 @@ const addresses = ref([])
 const selectedAddressId = ref('')
 const paymentMethod = ref('ALIPAY')
 const remark = ref('')
-const shipping = ref(10) // 运费
+const shipping = ref(5) // 运费
 const showPaymentDialog = ref(false)
+const addressFormRef = ref(null) // 添加表单引用
 const addressForm = ref({
   receiver: '',
   phone: '',
@@ -331,8 +331,20 @@ const getRegionLabels = (regionCodes) => {
 
 // 提交订单
 const submitOrder = async () => {
-  if (!selectedAddressId.value) {
-    ElMessage.warning('请选择收货地址')
+  // 验证表单
+  if (!addressFormRef.value) {
+    ElMessage.warning('表单引用不存在')
+    return
+  }
+  
+  // 验证表单
+  let formValid = false
+  await addressFormRef.value.validate((valid) => {
+    formValid = valid
+  })
+  
+  if (!formValid) {
+    ElMessage.warning('请完善收货地址信息')
     return
   }
   
@@ -349,28 +361,25 @@ const submitOrder = async () => {
   submitting.value = true
   
   try {
-    // 构建收货地址
-    const regionLabels = getRegionLabels(addressForm.value.region)
-    const address = {
-      receiver: addressForm.value.receiver,
-      phone: addressForm.value.phone,
-      province: regionLabels[0] || '',
-      city: regionLabels[1] || '',
-      district: regionLabels[2] || '',
-      detailAddress: addressForm.value.detailAddress,
-      zipCode: addressForm.value.zipCode
-    }
-    
     // 构建订单请求参数
-    const orderItems = checkoutItems.value.map(item => ({
+    const items = checkoutItems.value.map(item => ({
       bookId: item.book.id,
       quantity: item.quantity
     }))
     
+    // 构建地址信息
+    const addressInfo = {
+      receiver: addressForm.value.receiver,
+      phone: addressForm.value.phone,
+      region: addressForm.value.region,
+      detailAddress: addressForm.value.detailAddress,
+      zipCode: addressForm.value.zipCode
+    }
+    
     const orderRequest = {
-      address: address, // 直接传递地址对象
-      items: orderItems,
+      items: items,
       paymentMethod: paymentMethod.value,
+      addressInfo: addressInfo,
       remark: remark.value
     }
     

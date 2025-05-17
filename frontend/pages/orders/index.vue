@@ -8,7 +8,7 @@
       <el-skeleton style="width: 100%" :rows="5" animated />
     </div>
     
-    <div v-else-if="!isLoggedIn" class="login-required">
+    <div v-else-if="!userStore.isLoggedIn" class="login-required">
       <el-empty description="请登录后查看订单">
         <template #extra>
           <el-button type="primary" @click="router.push('/login')">去登录</el-button>
@@ -58,119 +58,89 @@
         </el-form>
       </div>
       
-      <!-- 订单列表 -->
-      <div class="order-list">
-        <div v-for="order in orders" :key="order.id" class="order-item">
-          <div class="order-header">
-            <div class="order-info">
-              <span class="order-time">下单时间: {{ formatDate(order.createTime) }}</span>
-              <span class="order-number">订单号: {{ order.orderNumber }}</span>
+      <!-- 订单表格 -->
+      <el-table :data="orders" style="width: 100%" v-loading="loading" border stripe>
+        <el-table-column prop="id" label="订单号" min-width="10" />
+        <el-table-column label="订单状态" min-width="10">
+          <template #default="scope">
+            <el-tag :type="getStatusType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="商品信息" min-width="30">
+          <template #default="scope">
+            <div class="book-tags">
+              <el-tag 
+                v-for="item in scope.row.orderItems" 
+                :key="item.id"
+                size="default"
+                :type="tagTypes[item.id % tagTypes.length]"
+                class="tag-item"
+                @click="goToBook(item.book.id)"
+              >
+                {{ item.book.title }}
+              </el-tag>
             </div>
-            <div class="order-status">
-              <el-tag :type="getStatusType(order.status)">{{ getStatusText(order.status) }}</el-tag>
-            </div>
-          </div>
-          
-          <div class="order-content">
-            <div class="order-products">
-              <div v-for="item in order.items" :key="item.id" class="product-item">
-                <div class="product-image">
-                  <el-image
-                    :src="item.book.cover || '/default-book.jpg'"
-                    fit="cover"
-                    @click="goToBook(item.book.id)"
-                    class="book-cover"
-                  />
-                </div>
-                <div class="product-info">
-                  <h3 class="product-title" @click="goToBook(item.book.id)">{{ item.book.title }}</h3>
-                  <p class="product-price">￥{{ item.price.toFixed(2) }} x {{ item.quantity }}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div class="order-summary">
-              <p class="order-total">总计: <span class="price">￥{{ order.totalAmount.toFixed(2) }}</span></p>
-              <div class="order-actions">
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click="goToOrderDetail(order.id)"
-                >
-                  订单详情
+          </template>
+        </el-table-column>
+        <el-table-column prop="totalAmount" label="总金额" min-width="10">
+          <template #default="scope">
+            <span class="price">￥{{ scope.row.totalAmount.toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="下单时间" min-width="15">
+          <template #default="scope">
+            {{ formatDate(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right" min-width="20">
+          <template #default="scope">
+            <div class="action-buttons">
+              <el-button type="primary" size="small" @click="goToOrderDetail(scope.row.id)">
+                订单详情
+              </el-button>
+              
+              <template v-if="scope.row.status === 'PENDING'">
+                <el-button type="info" size="small" @click="cancelOrder(scope.row.id)">
+                  取消订单
                 </el-button>
-                
-                <template v-if="order.status === 'PENDING_PAYMENT'">
-                  <el-button 
-                    type="danger" 
-                    size="small"
-                    @click="payOrder(order)"
-                  >
-                    去支付
-                  </el-button>
-                  <el-button 
-                    type="info" 
-                    size="small"
-                    @click="cancelOrder(order.id)"
-                  >
-                    取消订单
-                  </el-button>
-                </template>
-                
-                <template v-if="order.status === 'DELIVERED'">
-                  <el-button 
-                    type="success" 
-                    size="small"
-                    @click="confirmReceived(order.id)"
-                  >
-                    确认收货
-                  </el-button>
-                </template>
-                
-                <template v-if="order.status === 'COMPLETED'">
-                  <el-button 
-                    type="primary" 
-                    plain
-                    size="small"
-                    @click="reviewOrder(order.id)"
-                  >
-                    评价
-                  </el-button>
-                  <el-button 
-                    type="danger" 
-                    plain
-                    size="small"
-                    @click="deleteOrder(order.id)"
-                  >
-                    删除订单
-                  </el-button>
-                </template>
-                
-                <template v-if="order.status === 'CANCELLED'">
-                  <el-button 
-                    type="danger" 
-                    plain
-                    size="small"
-                    @click="deleteOrder(order.id)"
-                  >
-                    删除订单
-                  </el-button>
-                </template>
-              </div>
+              </template>
+              
+              <template v-if="scope.row.status === 'DELIVERED'">
+                <el-button type="success" size="small" @click="confirmReceived(scope.row.id)">
+                  确认收货
+                </el-button>
+              </template>
+              
+              <template v-if="scope.row.status === 'COMPLETED'">
+                <el-button type="primary" plain size="small" @click="reviewOrder(scope.row.id)">
+                  评价
+                </el-button>
+                <el-button type="danger" plain size="small" @click="deleteOrder(scope.row.id)">
+                  删除订单
+                </el-button>
+              </template>
+              
+              <template v-if="scope.row.status === 'CANCELLED'">
+                <el-button type="danger" plain size="small" @click="deleteOrder(scope.row.id)">
+                  删除订单
+                </el-button>
+              </template>
             </div>
-          </div>
-        </div>
-      </div>
+          </template>
+        </el-table-column>
+      </el-table>
       
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
           background
-          layout="prev, pager, next, jumper"
+          layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           :page-size="pageSize"
+          :page-sizes="[5, 10, 20, 50]"
           :current-page="currentPage"
           @current-change="handlePageChange"
+          @size-change="handleSizeChange"
         />
       </div>
     </div>
@@ -183,7 +153,7 @@
       :close-on-click-modal="false"
     >
       <div class="payment-dialog-content">
-        <p>订单号：{{ currentOrder?.orderNumber }}</p>
+        <p>订单号：{{ currentOrder?.id }}</p>
         <p>支付金额：<span class="total-price">￥{{ currentOrder?.totalAmount.toFixed(2) }}</span></p>
         <p>支付方式：{{ getPaymentMethodText(currentOrder?.paymentMethod) }}</p>
         
@@ -206,25 +176,28 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatDate as formatDateUtil } from '../../utils/dateUtils'
+import { useUserStore } from '../../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(true)
-const isLoggedIn = ref(false)
 const orders = ref([])
 const total = ref(0)
 const currentPage = ref(1)
-const pageSize = ref(5)
+const pageSize = ref(10)
 const showPaymentDialog = ref(false)
 const currentOrder = ref(null)
+const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
+const tagTypes = ['', 'success', 'warning', 'danger', 'info']
 
 // 订单状态选项
 const statusOptions = [
-  { value: 'PENDING_PAYMENT', label: '待付款' },
-  { value: 'PENDING_SHIPMENT', label: '待发货' },
+  { value: 'PENDING', label: '待付款' },
+  { value: 'PAID', label: '待发货' },
   { value: 'SHIPPED', label: '已发货' },
   { value: 'DELIVERED', label: '待收货' },
   { value: 'COMPLETED', label: '已完成' },
@@ -247,8 +220,8 @@ const formatDate = (dateString) => {
 // 获取状态文本
 const getStatusText = (status) => {
   const statusMap = {
-    'PENDING_PAYMENT': '待付款',
-    'PENDING_SHIPMENT': '待发货',
+    'PENDING': '待付款',
+    'PAID': '待发货',
     'SHIPPED': '已发货',
     'DELIVERED': '待收货',
     'COMPLETED': '已完成',
@@ -260,8 +233,8 @@ const getStatusText = (status) => {
 // 获取状态样式类型
 const getStatusType = (status) => {
   const typeMap = {
-    'PENDING_PAYMENT': 'warning',
-    'PENDING_SHIPMENT': 'info',
+    'PENDING': 'warning',
+    'PAID': 'info',
     'SHIPPED': 'primary',
     'DELIVERED': 'success',
     'COMPLETED': 'success',
@@ -281,26 +254,22 @@ const getPaymentMethodText = (method) => {
   return methods[method] || '未知支付方式'
 }
 
-// 检查登录状态
-const checkLoginStatus = () => {
-  const userInfo = localStorage.getItem('userInfo')
-  if (userInfo) {
-    isLoggedIn.value = true
-    return true
-  } else {
-    isLoggedIn.value = false
-    loading.value = false
-    return false
-  }
-}
-
 // 获取订单列表
 const fetchOrders = async () => {
-  if (!checkLoginStatus()) return
+  if (!userStore.isLoggedIn) {
+    // 尝试初始化用户状态
+    userStore.initUserFromStorage()
+    // 检查会话状态
+    const isLoggedIn = await userStore.checkSession()
+    if (!isLoggedIn) {
+      loading.value = false
+      return
+    }
+  }
   
   loading.value = true
   try {
-    let url = `/api/order/search?page=${currentPage.value}&pageSize=${pageSize.value}`
+    let url = `${baseUrl.value}/api/order/search?page=${currentPage.value}&pageSize=${pageSize.value}`
     
     if (filterForm.status) {
       url += `&status=${filterForm.status}`
@@ -315,8 +284,18 @@ const fetchOrders = async () => {
     }
     
     const response = await fetch(url, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: userStore.getAuthHeaders()
     })
+    
+    if (response.status === 401 || response.status === 403) {
+      ElMessage.error('登录已过期或权限不足，请重新登录')
+      userStore.clearUser()
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+      return
+    }
     
     const result = await response.json()
     if (result.code === 200) {
@@ -353,6 +332,13 @@ const handlePageChange = (page) => {
   fetchOrders()
 }
 
+// 页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  fetchOrders()
+}
+
 // 跳转到订单详情
 const goToOrderDetail = (orderId) => {
   router.push(`/orders/${orderId}`)
@@ -374,10 +360,20 @@ const confirmPayment = async () => {
   if (!currentOrder.value) return
   
   try {
-    const response = await fetch(`/api/order/${currentOrder.value.id}/pay?paymentMethod=${currentOrder.value.paymentMethod || 'ALIPAY'}`, {
+    const response = await fetch(`${baseUrl.value}/api/order/${currentOrder.value.id}/pay?paymentMethod=${currentOrder.value.paymentMethod || 'ALIPAY'}`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
+      headers: userStore.getAuthHeaders()
     })
+    
+    if (response.status === 401 || response.status === 403) {
+      ElMessage.error('登录已过期或权限不足，请重新登录')
+      userStore.clearUser()
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+      return
+    }
     
     const result = await response.json()
     if (result.code === 200) {
@@ -401,10 +397,20 @@ const cancelOrder = (orderId) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await fetch(`/api/order/${orderId}/cancel`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/cancel`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -428,11 +434,20 @@ const confirmReceived = (orderId) => {
     type: 'info'
   }).then(async () => {
     try {
-      // 这个API可能不存在，需要根据后端实际情况调整
-      const response = await fetch(`/api/order/${orderId}/received`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/received`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -461,10 +476,20 @@ const deleteOrder = (orderId) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await fetch(`/api/order/${orderId}`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -490,6 +515,7 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  font-size: 16px; /* 增加基础字体大小 */
 }
 
 .page-header {
@@ -497,7 +523,7 @@ onMounted(() => {
 }
 
 .page-header h1 {
-  font-size: 24px;
+  font-size: 29px; /* 增加标题字体大小 */
   color: #333;
   margin: 0;
   padding-bottom: 10px;
@@ -517,127 +543,71 @@ onMounted(() => {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-.order-list {
-  margin-bottom: 20px;
+/* 表格内容字体调整 */
+:deep(.el-table) {
+  font-size: 15px; /* 表格字体调整 */
 }
 
-.order-item {
-  background-color: #fff;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+:deep(.el-table th) {
+  font-size: 16px; /* 表头字体调整 */
 }
 
-.order-header {
+.book-tags {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.order-info {
-  display: flex;
-  gap: 20px;
-  color: #666;
-}
-
-.order-content {
-  padding: 20px;
-}
-
-.order-products {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.product-item {
-  display: flex;
-  align-items: center;
-  padding-bottom: 15px;
-  border-bottom: 1px dashed #eee;
-}
-
-.product-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.product-image {
-  width: 80px;
-  height: 80px;
-  margin-right: 15px;
-  flex-shrink: 0;
-}
-
-.book-cover {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
+.tag-item {
+  font-size: 14px; /* 标签字体大小 */
   cursor: pointer;
 }
 
-.product-info {
-  flex-grow: 1;
-}
-
-.product-title {
-  margin: 0 0 5px;
-  font-size: 16px;
-  cursor: pointer;
-  color: #333;
-}
-
-.product-title:hover {
-  color: #409EFF;
-}
-
-.product-price {
-  color: #666;
-  margin: 0;
-}
-
-.order-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
-}
-
-.order-total {
-  margin: 0;
-  font-size: 16px;
+.tag-item:hover {
+  opacity: 0.85;
 }
 
 .price {
   color: #ff6700;
   font-weight: bold;
+  font-size: 16px; /* 价格字体大小 */
 }
 
-.order-actions {
+.action-buttons {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* 按钮字体大小调整 */
+:deep(.el-button) {
+  font-size: 14px;
+}
+
+:deep(.el-button--small) {
+  font-size: 13px;
 }
 
 .pagination {
-  margin-top: 30px;
+  margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+}
+
+/* 分页组件字体调整 */
+:deep(.el-pagination) {
+  font-size: 15px;
 }
 
 .payment-dialog-content {
   text-align: center;
+  font-size: 16px;
 }
 
 .total-price {
   color: #ff6700;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 22px; /* 增加总价字体大小 */
 }
 
 .payment-qr-code {
@@ -649,5 +619,16 @@ onMounted(() => {
   width: 200px;
   height: 200px;
   border: 1px solid #eee;
+}
+
+/* 表单控件字体大小调整 */
+:deep(.el-form-item__label) {
+  font-size: 15px;
+}
+
+:deep(.el-input__inner),
+:deep(.el-select__input),
+:deep(.el-select-dropdown__item) {
+  font-size: 15px;
 }
 </style> 

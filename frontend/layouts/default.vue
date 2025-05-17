@@ -32,7 +32,7 @@
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="navigateTo('/user/orders')">
+                    <el-dropdown-item @click="navigateTo('/orders')">
                       <el-icon><shopping-bag /></el-icon> 我的订单
                     </el-dropdown-item>
                     <el-dropdown-item divided @click="handleLogout">

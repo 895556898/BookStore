@@ -101,7 +101,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 创建订单
-     * @param request 订单请求对象，包含购物车项ID列表
+     * @param request 订单请求对象，包含商品ID和数量
      * @return 创建的订单对象
      */
     @Override
@@ -112,28 +112,24 @@ public class OrderServiceImpl implements OrderService {
             return Result.error(401, "用户未登录");
         }
 
-        // 获取购物车项
-        List<CartItem> cartItems = cartService.getCartItemsByIds(request.getCartItemIds());
-        if (cartItems.isEmpty()) {
-            return Result.error(400, "购物车为空");
+        // 检查请求是否有效
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            return Result.error(400, "订单项不能为空");
         }
 
-        // 检查库存
-        for (CartItem cartItem : cartItems) {
-            Book book = bookMapper.selectOneById(cartItem.getBookId());
+        // 计算总价并检查库存
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<OrderRequest.OrderItemRequest> orderItems = request.getItems();
+        
+        for (OrderRequest.OrderItemRequest item : orderItems) {
+            Book book = bookMapper.selectOneById(item.getBookId());
             if (book == null) {
-                return Result.error(404, "图书不存在: " + cartItem.getBookId());
+                return Result.error(404, "图书不存在: " + item.getBookId());
             }
-            if (book.getStock() < cartItem.getQuantity()) {
+            if (book.getStock() < item.getQuantity()) {
                 return Result.error(400, "图书库存不足: " + book.getTitle());
             }
-        }
-
-        // 计算总价
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (CartItem cartItem : cartItems) {
-            Book book = bookMapper.selectOneById(cartItem.getBookId());
-            totalAmount = totalAmount.add(book.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            totalAmount = totalAmount.add(book.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
         // 创建订单
@@ -147,35 +143,30 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.insertOrder(order);
 
         // 创建订单项
-        List<OrderItem> orderItems = new ArrayList<>();
-        for (CartItem cartItem : cartItems) {
-            Book book = bookMapper.selectOneById(cartItem.getBookId());
+        List<OrderItem> orderItemsList = new ArrayList<>();
+        for (OrderRequest.OrderItemRequest item : orderItems) {
+            Book book = bookMapper.selectOneById(item.getBookId());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(order.getId());
-            orderItem.setBookId(cartItem.getBookId());
-            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setBookId(item.getBookId());
+            orderItem.setQuantity(item.getQuantity());
             orderItem.setPrice(book.getPrice());
             orderItem.setCreateTime(LocalDateTime.now());
             orderItem.setUpdateTime(LocalDateTime.now());
             orderItemMapper.insertOrderItem(orderItem);
 
             // 减少库存
-            bookService.updateStock(book.getId(), cartItem.getQuantity());
+            bookService.updateStock(book.getId(), item.getQuantity());
 
             orderItem.setBook(book);
-            orderItems.add(orderItem);
+            orderItemsList.add(orderItem);
         }
         
-        // 删除购物车项
-        for (CartItem cartItem : cartItems) {
-            cartItemMapper.deleteById(cartItem.getId());
-        }
-        
-        order.setOrderItems(orderItems);
+        order.setOrderItems(orderItemsList);
         
         // 设置用户信息
-        setUser(order,currentUser);
+        setUser(order, currentUser);
         
         return Result.success(order);
     }

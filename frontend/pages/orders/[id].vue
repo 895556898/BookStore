@@ -41,7 +41,7 @@
         </div>
         
         <div class="order-actions">
-          <template v-if="order.status === 'PENDING_PAYMENT'">
+          <template v-if="order.status === 'PENDING'">
             <el-button type="danger" @click="payOrder">去支付</el-button>
             <el-button @click="cancelOrder">取消订单</el-button>
           </template>
@@ -62,6 +62,19 @@
         </div>
       </div>
       
+      <!-- 订单号信息 -->
+      <div class="section">
+        <h2 class="section-title">订单信息</h2>
+        <div class="section-content">
+          <div class="order-info">
+            <p><span class="label">订单编号：</span>{{ order.id }}</p>
+            <p><span class="label">下单时间：</span>{{ formatDate(order.createTime) }}</p>
+            <p><span class="label">支付方式：</span>{{ getPaymentMethodText(order.paymentMethod) }}</p>
+            <p><span class="label">订单备注：</span>{{ order.remark || '无' }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 收货信息 -->
       <div class="section">
         <h2 class="section-title">收货信息</h2>
@@ -74,24 +87,11 @@
         </div>
       </div>
       
-      <!-- 订单信息 -->
-      <div class="section">
-        <h2 class="section-title">订单信息</h2>
-        <div class="section-content">
-          <div class="order-info">
-            <p><span class="label">订单编号：</span>{{ order.orderNumber }}</p>
-            <p><span class="label">下单时间：</span>{{ formatDate(order.createTime) }}</p>
-            <p><span class="label">支付方式：</span>{{ getPaymentMethodText(order.paymentMethod) }}</p>
-            <p><span class="label">订单备注：</span>{{ order.remark || '无' }}</p>
-          </div>
-        </div>
-      </div>
-      
       <!-- 商品信息 -->
       <div class="section">
         <h2 class="section-title">商品信息</h2>
         <div class="section-content">
-          <el-table :data="order.items" border style="width: 100%">
+          <el-table :data="order.orderItems" border style="width: 100%">
             <el-table-column label="商品信息">
               <template #default="scope">
                 <div class="product-item">
@@ -105,7 +105,7 @@
                   </div>
                   <div class="product-info">
                     <h3 class="product-title" @click="goToBook(scope.row.book.id)">{{ scope.row.book.title }}</h3>
-                    <p class="product-author">{{ scope.row.book.author }}</p>
+                    <p class="product-author">{{ scope.row.book.writer }}</p>
                   </div>
                 </div>
               </template>
@@ -152,7 +152,7 @@
       </div>
       
       <!-- 物流信息 -->
-      <div v-if="order.status !== 'PENDING_PAYMENT' && order.status !== 'CANCELLED'" class="section">
+      <div v-if="order.status !== 'PENDING' && order.status !== 'CANCELLED'" class="section">
         <h2 class="section-title">物流信息</h2>
         <div class="section-content">
           <div v-if="order.shipment" class="shipment-info">
@@ -161,7 +161,7 @@
             <p><span class="label">发货时间：</span>{{ formatDate(order.shipment.shipTime) }}</p>
           </div>
           <div v-else class="empty-shipment">
-            <p v-if="order.status === 'PENDING_SHIPMENT'">商家正在备货，请耐心等待发货</p>
+            <p v-if="order.status === 'PAID'">商家正在备货，请耐心等待发货</p>
             <p v-else>暂无物流信息</p>
           </div>
         </div>
@@ -176,7 +176,7 @@
       :close-on-click-modal="false"
     >
       <div class="payment-dialog-content">
-        <p>订单号：{{ order?.orderNumber }}</p>
+        <p>订单号：{{ order?.id }}</p>
         <p>支付金额：<span class="total-price">￥{{ order?.totalAmount?.toFixed(2) }}</span></p>
         <p>支付方式：{{ getPaymentMethodText(order?.paymentMethod) }}</p>
         
@@ -227,10 +227,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Wallet, Van, CircleCheck } from '@element-plus/icons-vue'
 import { formatDate as formatDateUtil } from '../../utils/dateUtils'
+import { useUserStore } from '../../stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const orderId = route.params.id
+const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
 
 const order = ref({})
 const loading = ref(true)
@@ -241,32 +244,59 @@ const tracking = ref([])
 
 // 获取订单详情
 const fetchOrderDetail = async () => {
-  loading.value = true
+  loading.value = true;
+  error.value = false;
+
+  // 检查用户登录状态
+  if (!userStore.isLoggedIn) {
+    // 尝试初始化用户状态
+    userStore.initUserFromStorage();
+    // 检查会话状态
+    const isLoggedIn = await userStore.checkSession();
+    if (!isLoggedIn) {
+      ElMessage.warning('请先登录');
+      router.push('/login');
+      return;
+    }
+  }
+
   try {
-    const response = await fetch(`/api/order/${orderId}`, {
-      credentials: 'include'
-    })
-    
-    const result = await response.json()
+    const response = await fetch(`${baseUrl.value}/api/order/${orderId}`, {
+      credentials: 'include',
+      headers: userStore.getAuthHeaders()
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      ElMessage.error('登录已过期或权限不足，请重新登录');
+      userStore.clearUser();
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+      return;
+    }
+
+    const result = await response.json();
     if (result.code === 200) {
-      order.value = result.data
+      order.value = result.data;
+      console.log('订单详情:', order.value);
     } else {
-      error.value = true
-      ElMessage.error(result.message || '获取订单详情失败')
+      error.value = true;
+      ElMessage.error(result.message || '获取订单详情失败');
     }
   } catch (err) {
-    console.error('获取订单详情失败:', err)
-    error.value = true
+    console.error('获取订单详情失败:', err);
+    error.value = true;
+    ElMessage.error('获取订单详情失败，请稍后再试');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 获取订单状态文本
 const getStatusText = (status) => {
   const statusMap = {
-    'PENDING_PAYMENT': '待付款',
-    'PENDING_SHIPMENT': '待发货',
+    'PENDING': '待付款',
+    'PAID': '待发货',
     'SHIPPED': '已发货',
     'DELIVERED': '待收货',
     'COMPLETED': '已完成',
@@ -278,8 +308,8 @@ const getStatusText = (status) => {
 // 获取订单状态描述
 const getStatusDescription = (status) => {
   const descMap = {
-    'PENDING_PAYMENT': '订单已提交，请尽快完成支付',
-    'PENDING_SHIPMENT': '订单已支付，等待商家发货',
+    'PENDING': '订单已提交，请尽快完成支付',
+    'PAID': '订单已支付，等待商家发货',
     'SHIPPED': '商家已发货，请耐心等待',
     'DELIVERED': '包裹已送达，请确认收货',
     'COMPLETED': '交易已完成，感谢您的购买',
@@ -291,8 +321,8 @@ const getStatusDescription = (status) => {
 // 获取订单状态类型
 const getStatusType = (status) => {
   const typeMap = {
-    'PENDING_PAYMENT': 'warning',
-    'PENDING_SHIPMENT': 'info',
+    'PENDING': 'warning',
+    'PAID': 'info',
     'SHIPPED': 'primary',
     'DELIVERED': 'success',
     'COMPLETED': 'success',
@@ -304,8 +334,8 @@ const getStatusType = (status) => {
 // 获取订单流程步骤
 const getStatusStep = (status) => {
   const stepMap = {
-    'PENDING_PAYMENT': 1,
-    'PENDING_SHIPMENT': 2,
+    'PENDING': 1,
+    'PAID': 2,
     'SHIPPED': 3,
     'DELIVERED': 3,
     'COMPLETED': 4,
@@ -334,14 +364,14 @@ const getPaymentMethodText = (method) => {
 // 获取完整地址
 const getFullAddress = (address) => {
   if (!address) return ''
-  return `${address.province} ${address.city} ${address.district} ${address.detailAddress} ${address.zipCode ? `(${address.zipCode})` : ''}`
+  return `${address.province || ''} ${address.city || ''} ${address.district || ''} ${address.detailAddress || ''} ${address.zipCode ? `(${address.zipCode})` : ''}`
 }
 
 // 计算商品小计
 const calculateSubtotal = () => {
-  if (!order.value.items) return 0
+  if (!order.value.orderItems) return 0
   
-  return order.value.items.reduce((total, item) => {
+  return order.value.orderItems.reduce((total, item) => {
     return total + (item.price * item.quantity)
   }, 0)
 }
@@ -359,10 +389,20 @@ const payOrder = () => {
 // 确认支付
 const confirmPayment = async () => {
   try {
-    const response = await fetch(`/api/order/${orderId}/pay?paymentMethod=${order.value.paymentMethod || 'ALIPAY'}`, {
+    const response = await fetch(`${baseUrl.value}/api/order/${orderId}/pay?paymentMethod=${order.value.paymentMethod || 'ALIPAY'}`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
+      headers: userStore.getAuthHeaders()
     })
+    
+    if (response.status === 401 || response.status === 403) {
+      ElMessage.error('登录已过期或权限不足，请重新登录')
+      userStore.clearUser()
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+      return
+    }
     
     const result = await response.json()
     if (result.code === 200) {
@@ -386,10 +426,20 @@ const cancelOrder = () => {
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await fetch(`/api/order/${orderId}/cancel`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/cancel`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -435,11 +485,20 @@ const confirmReceived = () => {
     type: 'info'
   }).then(async () => {
     try {
-      // 这个API可能不存在，需要根据后端实际情况调整
-      const response = await fetch(`/api/order/${orderId}/received`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/received`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -468,10 +527,20 @@ const deleteOrder = () => {
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await fetch(`/api/order/${orderId}`, {
+      const response = await fetch(`${baseUrl.value}/api/order/${orderId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: userStore.getAuthHeaders()
       })
+      
+      if (response.status === 401 || response.status === 403) {
+        ElMessage.error('登录已过期或权限不足，请重新登录')
+        userStore.clearUser()
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        return
+      }
       
       const result = await response.json()
       if (result.code === 200) {
@@ -497,6 +566,7 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  font-size: 16px; /* 增加基础字体大小 */
 }
 
 .page-header {
@@ -507,7 +577,7 @@ onMounted(() => {
 }
 
 .page-header h1 {
-  font-size: 24px;
+  font-size: 29px; /* 增加标题字体大小 */
   color: #333;
   margin: 0;
 }
@@ -532,10 +602,16 @@ onMounted(() => {
 .status-desc {
   color: #666;
   margin-top: 10px;
+  font-size: 16px;
 }
 
 .status-timeline {
   margin: 30px 0;
+}
+
+/* 步骤条字体调整 */
+:deep(.el-step__title) {
+  font-size: 16px;
 }
 
 .order-actions {
@@ -556,7 +632,7 @@ onMounted(() => {
 .section-title {
   padding: 15px 20px;
   margin: 0;
-  font-size: 18px;
+  font-size: 20px; /* 增加节标题字体大小 */
   border-bottom: 1px solid #eee;
   background-color: #f5f7fa;
 }
@@ -569,10 +645,21 @@ onMounted(() => {
   color: #666;
   display: inline-block;
   width: 100px;
+  font-size: 16px;
 }
 
-.address-info p, .order-info p {
+.address-info p, .order-info p, .shipment-info p {
   margin: 10px 0;
+  font-size: 16px;
+}
+
+/* 表格内容字体调整 */
+:deep(.el-table) {
+  font-size: 15px;
+}
+
+:deep(.el-table th) {
+  font-size: 16px;
 }
 
 .product-item {
@@ -612,11 +699,13 @@ onMounted(() => {
 .product-author {
   color: #666;
   margin: 0;
+  font-size: 14px;
 }
 
 .subtotal {
   color: #ff6700;
   font-weight: bold;
+  font-size: 16px;
 }
 
 .price-summary {
@@ -627,6 +716,7 @@ onMounted(() => {
 
 .price-item {
   padding: 8px 0;
+  font-size: 16px;
 }
 
 .price-item.total {
@@ -639,7 +729,7 @@ onMounted(() => {
 
 .total-price {
   color: #ff6700;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
 }
 
@@ -647,10 +737,12 @@ onMounted(() => {
   color: #999;
   text-align: center;
   padding: 20px 0;
+  font-size: 16px;
 }
 
 .payment-dialog-content {
   text-align: center;
+  font-size: 16px;
 }
 
 .payment-qr-code {
@@ -667,5 +759,19 @@ onMounted(() => {
 .tracking-info {
   max-height: 400px;
   overflow-y: auto;
+}
+
+/* 时间线内容字体调整 */
+:deep(.el-timeline-item__content) {
+  font-size: 15px;
+}
+
+:deep(.el-timeline-item__timestamp) {
+  font-size: 14px;
+}
+
+/* 按钮字体大小调整 */
+:deep(.el-button) {
+  font-size: 14px;
 }
 </style> 
