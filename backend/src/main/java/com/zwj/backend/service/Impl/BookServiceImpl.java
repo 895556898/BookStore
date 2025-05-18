@@ -40,7 +40,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public Result<Book> getBookById(Long id) {
         Book book = bookMapper.selectOneById(id);
-        if (book != null) {
+        if (book != null && book.getStatus()) {
             book.setTag(getTagsByBookId(id));
             return Result.success(book);
         } else {
@@ -72,6 +72,8 @@ public class BookServiceImpl implements BookService {
     @Override
     public Result<Page<Book>> searchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder, Double minPrice, Double maxPrice) {
         QueryWrapper queryWrapper = QueryWrapper.create();
+        //查询在售书籍
+        queryWrapper.and(BOOK.STATUS.eq(1));
         
         // 添加关键词筛选
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -139,6 +141,78 @@ public class BookServiceImpl implements BookService {
         return Result.success(bookPage);
     }
 
+    //管理员查找图书接口
+    @Override
+    public Result<Page<Book>> adminSearchBooks(int pageNum, int pageSize, String keyword, String sortBy, String sortOrder, Double minPrice, Double maxPrice) {
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.and(BOOK.STATUS.eq(1).or(BOOK.STATUS.eq(0)));
+
+        // 添加关键词筛选
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.where(BOOK.TITLE.like("%" + keyword + "%")
+                    .or(BOOK.WRITER.like("%" + keyword + "%"))
+                    .or(BOOK.ISBN.like("%" + keyword + "%")));
+        }
+
+        // 添加价格区间筛选
+        if (minPrice != null && maxPrice != null) {
+            queryWrapper.and(BOOK.PRICE.between(minPrice, maxPrice));
+        } else if (minPrice != null) {
+            queryWrapper.and(BOOK.PRICE.ge(minPrice));
+        } else if (maxPrice != null) {
+            queryWrapper.and(BOOK.PRICE.le(maxPrice));
+        }
+
+        // 添加排序
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            boolean isAsc = !"desc".equalsIgnoreCase(sortOrder);
+
+            // 根据sortBy字段添加排序
+            switch (sortBy) {
+                case "id":
+                    queryWrapper.orderBy(BOOK.ID, isAsc);
+                    break;
+                case "title":
+                    queryWrapper.orderBy(BOOK.TITLE, isAsc);
+                    break;
+                case "writer":
+                    queryWrapper.orderBy(BOOK.WRITER, isAsc);
+                    break;
+                case "price":
+                    queryWrapper.orderBy(BOOK.PRICE, isAsc);
+                    break;
+                case "cost":
+                    queryWrapper.orderBy(BOOK.COST, isAsc);
+                    break;
+                case "stock":
+                    queryWrapper.orderBy(BOOK.STOCK, isAsc);
+                    break;
+                case "isbn":
+                    queryWrapper.orderBy(BOOK.ISBN, isAsc);
+                    break;
+                case "sales":
+                    queryWrapper.orderBy(BOOK.SALES, isAsc);
+                    break;
+                default:
+                    queryWrapper.orderBy(BOOK.ID, true);
+                    break;
+            }
+        } else {
+            // 默认按id排序
+            queryWrapper.orderBy(BOOK.ID, true);
+        }
+
+        // 执行分页查询
+        Page<Book> bookPage = bookMapper.paginate(pageNum, pageSize, queryWrapper);
+
+        // 为每本书加载标签信息
+        for (Book book : bookPage.getRecords()) {
+            book.setTag(getTagsByBookId(book.getId()));
+        }
+
+        return Result.success(bookPage);
+    }
+
     // 标签查询图书
     @Override
     public Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids) {
@@ -147,8 +221,6 @@ public class BookServiceImpl implements BookService {
         if (tids == null || tids.isEmpty()) {
             return searchBooks(pageNum, pageSize, "", null, null, null, null ); // 空标签，返回全部图书分页
         }
-
-        System.out.println(tids);
 
         for (long tagId : tids) {
             List<BookTag> bookTagList = bookTagMapper.selectListByQuery(QueryWrapper.create()
@@ -162,9 +234,8 @@ public class BookServiceImpl implements BookService {
             }
         }
 
-        System.out.println(bookIdList);
-
         QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.and(BOOK.STATUS.eq(1));
         if (!bookIdList.isEmpty()) {
            queryWrapper.where(BOOK.ID.in(bookIdList));
         }
@@ -274,13 +345,13 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public Result<Void> deleteBook(Long id) {
+        Book book = bookMapper.selectOneById(id);
+        book.setStatus(false);
         // 使用正确的字段名删除关联
-        bookTagMapper.deleteByQuery(
-                QueryWrapper.create().where("bid = ?", id));
 
         AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
         Db.tx(() -> {
-            affectedRows1.set(bookMapper.deleteById(id));
+            affectedRows1.set(bookMapper.update(book));
             return affectedRows1.get() > 0;
         });
 

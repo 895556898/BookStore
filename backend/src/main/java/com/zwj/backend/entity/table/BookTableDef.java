@@ -20,14 +20,12 @@ public class BookTableDef extends TableDef {
     public final QueryColumn STOCK = new QueryColumn(this, "stock");
     public final QueryColumn CREATED_BY = new QueryColumn(this, "created_by");
     public final QueryColumn SALES = new QueryColumn(this,"sales");
-    public final QueryColumn PUBLISH_DATE = new QueryColumn(this, "publish_date");
-    public final QueryColumn CREATE_TIME = new QueryColumn(this, "create_time");
-    public final QueryColumn UPDATE_TIME = new QueryColumn(this, "update_time");
+    public final QueryColumn STATUS = new QueryColumn(this,"status");
 
     // 所有字段 (为了能够使用selectAll等方法)
     public final QueryColumn[] ALL_COLUMNS = new QueryColumn[] {
             ID, TITLE, WRITER, ISBN, COVER, PRICE, COST, STOCK,
-            CREATED_BY, SALES, PUBLISH_DATE, CREATE_TIME, UPDATE_TIME
+            CREATED_BY, SALES, STATUS
     };
 
     // 构造方法，指定表名

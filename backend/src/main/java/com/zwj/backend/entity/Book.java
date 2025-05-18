@@ -41,6 +41,7 @@ public class Book {
     private List<Tag> tag;      // 分类
     private String  createdBy;  // 创建者
     private int sales;          // 销量
+    private Boolean status;     //图书状态（true为在售，false为下架）
 
     public Book() {
         title = "";
@@ -53,9 +54,10 @@ public class Book {
         tag = new ArrayList<>();
         createdBy = "";
         sales = 0;
+        status = true;
     }
 
-    public Book(Long id, String title, String writer, String isbn, String cover, BigDecimal price, BigDecimal cost, Integer stock, List<Tag> tag, String createdBy, int sales) {
+    public Book(Long id, String title, String writer, String isbn, String cover, BigDecimal price, BigDecimal cost, Integer stock, List<Tag> tag, String createdBy, int sales, boolean status) {
         this.id = id;
         this.title = title;
         this.writer = writer;
@@ -67,5 +69,6 @@ public class Book {
         this.tag = tag;
         this.createdBy = createdBy;
         this.sales = sales;
+        this.status = status;
     }
 }

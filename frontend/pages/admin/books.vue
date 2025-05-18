@@ -435,7 +435,7 @@ const fetchBooks = async () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
     
     // 构建URL和参数
-    let url = `${baseUrl.value}/api/book/search`
+    let url = `${baseUrl.value}/api/book/admin/search`
     const params = new URLSearchParams()
     
     // 添加分页参数 - 注意这里不要减1，与后端对齐
