@@ -22,8 +22,8 @@ public interface OrderService {
     // 删除订单
     Result<Order> deleteOrder(Long id);
     
-    // 获取所有订单（管理员）
-    Result<List<Order>> getAllOrders();
+//    // 获取所有订单（管理员）
+//    Result<List<Order>> getAllOrders();
     
     // 搜索所有订单（管理员）
     Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end);

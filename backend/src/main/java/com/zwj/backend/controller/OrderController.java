@@ -71,12 +71,12 @@ public class OrderController {
         return orderService.cancelOrder(id);
     }
 
-    // 管理员接口
-    @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Result<List<Order>> getAllOrders() {
-        return orderService.getAllOrders();
-    }
+//    // 管理员接口
+//    @GetMapping("/admin")
+//    @PreAuthorize("hasRole('ADMIN')")
+//    public Result<List<Order>> getAllOrders() {
+//        return orderService.getAllOrders();
+//    }
 
     @GetMapping("/admin/search")
     @PreAuthorize("hasRole('ADMIN')")

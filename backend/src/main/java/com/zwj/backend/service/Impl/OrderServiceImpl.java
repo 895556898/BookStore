@@ -233,7 +233,6 @@ public class OrderServiceImpl implements OrderService {
         // 设置用户信息
         setUser(order, currentUser);
 
-        System.out.println(order);
         return Result.success(order);
     }
 
@@ -289,36 +288,36 @@ public class OrderServiceImpl implements OrderService {
         return Result.success(order);
     }
 
-    @Override
-    public Result<List<Order>> getAllOrders() {
-        // 检查是否为管理员
-        User currentUser = getCurrentUser();
-        if (currentUser == null || !"admin".equals(currentUser.getRole())) {
-            return Result.error(403, "权限不足");
-        }
-
-        List<Order> orders = QueryChain.of(orderMapper)
-                .orderBy(ORDER.CREATE_TIME.desc())
-                .list();
-
-        // 加载订单项和用户信息
-        for (Order order : orders) {
-            List<OrderItem> orderItems = QueryChain.of(orderItemMapper)
-                    .where(ORDER_ITEM.ORDER_ID.eq(order.getId()))
-                    .list();
-
-            // 加载图书信息
-            for (OrderItem orderItem : orderItems) {
-                Book book = bookMapper.selectOneById(orderItem.getBookId());
-                book.setTag(getTagsByBookId(book.getId()));
-                orderItem.setBook(book);
-            }
-
-            order.setOrderItems(orderItems);
-        }
-
-        return Result.success(orders);
-    }
+//    @Override
+//    public Result<List<Order>> getAllOrders() {
+//        // 检查是否为管理员
+//        User currentUser = getCurrentUser();
+//        if (currentUser == null || !"admin".equals(currentUser.getRole())) {
+//            return Result.error(403, "权限不足");
+//        }
+//
+//        List<Order> orders = QueryChain.of(orderMapper)
+//                .orderBy(ORDER.CREATE_TIME.desc())
+//                .list();
+//
+//        // 加载订单项和用户信息
+//        for (Order order : orders) {
+//            List<OrderItem> orderItems = QueryChain.of(orderItemMapper)
+//                    .where(ORDER_ITEM.ORDER_ID.eq(order.getId()))
+//                    .list();
+//
+//            // 加载图书信息
+//            for (OrderItem orderItem : orderItems) {
+//                Book book = bookMapper.selectOneById(orderItem.getBookId());
+//                book.setTag(getTagsByBookId(book.getId()));
+//                orderItem.setBook(book);
+//            }
+//
+//            order.setOrderItems(orderItems);
+//        }
+//
+//        return Result.success(orders);
+//    }
 
     @Override
     public Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end) {
@@ -361,6 +360,13 @@ public class OrderServiceImpl implements OrderService {
                 book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
+            System.out.println(order);
+            System.out.println(order.getUserId());
+            System.out.println("——————————————");
+
+            //加载用户信息
+            User user = userMapper.selectOneById(order.getUserId());
+            order.setUser(user);
 
             order.setOrderItems(orderItems);
         }
