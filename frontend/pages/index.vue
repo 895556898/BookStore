@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { Search, ShoppingCart } from "@element-plus/icons-vue"
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 // 定义图书类型接口
 interface Book {
@@ -27,6 +28,9 @@ const currentPage = ref(1)
 const pageSize = ref(8)
 const total = ref(0)
 const baseUrl = ref('http://localhost:8080')
+
+// 初始化路由
+const router = useRouter()
 
 // 获取图书列表
 const fetchBooks = async () => {
@@ -111,9 +115,13 @@ const handleSearch = () => {
     return
   }
   
-  currentPage.value = 1
   // 跳转到搜索结果页
-  navigateTo(`/books?keyword=${encodeURIComponent(searchKey.value)}`)
+  router.push({
+    path: '/books',
+    query: {
+      keyword: searchKey.value.trim()
+    }
+  })
 }
 
 // 页面变化
@@ -123,7 +131,7 @@ const handlePageChange = (page: number) => {
 }
 
 // 添加到购物车
-const addToCart = async (bookId) => {
+const addToCart = async (bookId: number) => {
   try {
     const response = await fetch(`${baseUrl.value}/api/cart/add?bookId=${bookId}&quantity=1`, {
       method: 'POST',
@@ -148,7 +156,7 @@ const navigateToDetail = (bookId: number) => {
 
 // 导航跳转
 const navigateTo = (path: string) => {
-  useRouter().push(path)
+  router.push(path)
 }
 
 // 检查是否登录

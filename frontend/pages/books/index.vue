@@ -147,11 +147,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, ShoppingCart, Picture, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const searchQuery = ref('')
 const loading = ref(false)
 const books = ref([])
@@ -347,6 +348,13 @@ const addToCart = async (bookId) => {
 
 // 生命周期钩子
 onMounted(() => {
+  // 从URL获取搜索关键词
+  const keywordFromURL = route.query.keyword
+  if (keywordFromURL) {
+    searchQuery.value = keywordFromURL
+  }
+  
+  // 获取图书列表
   fetchBooks()
 })
 </script>

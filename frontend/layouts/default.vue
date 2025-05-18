@@ -20,7 +20,7 @@
               <template v-if="userStore.getUserRole === 'admin'">
                 <el-menu-item index="/admin/books">图书管理</el-menu-item>
                 <el-menu-item index="/admin/orders">订单管理</el-menu-item>
-                <el-menu-item index="/admin/stats">销售统计</el-menu-item>
+                <!-- <el-menu-item index="/admin/stats">销售统计</el-menu-item> -->
               </template>
             </el-menu>
           </div>
