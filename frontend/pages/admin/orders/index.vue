@@ -21,26 +21,14 @@
       <div class="filter-bar">
         <el-form :inline="true" :model="filterForm" class="order-filter">
           <el-form-item label="订单状态">
-            <el-select v-model="filterForm.status" placeholder="全部" clearable>
+            <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 120px;">
               <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           
-          <el-form-item label="时间范围">
-            <el-date-picker
-              v-model="filterForm.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              :default-time="['00:00:00', '23:59:59']"
-            />
-          </el-form-item>
-          
           <el-form-item label="关键词">
-            <el-input v-model="filterForm.keyword" placeholder="订单号/用户名" />
+            <el-input v-model="filterForm.keyword" placeholder="订单号" style="width: 200px;" />
+<!--            TODO:增加用户名模糊搜索-->
           </el-form-item>
           
           <el-form-item>
@@ -154,7 +142,7 @@
         <template v-if="actionType === 'ship'">
           <el-form :model="shipForm" label-width="80px">
             <el-form-item label="快递公司">
-              <el-select v-model="shipForm.company" placeholder="请选择快递公司">
+              <el-select v-model="shipForm.company" placeholder="请选择快递公司" style="width: 100%;">
                 <el-option label="顺丰速运" value="SF" />
                 <el-option label="中通快递" value="ZTO" />
                 <el-option label="圆通速递" value="YTO" />

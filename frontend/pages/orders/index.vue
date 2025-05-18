@@ -34,19 +34,6 @@
             </el-select>
           </el-form-item>
           
-          <el-form-item label="时间范围">
-            <el-date-picker
-              v-model="filterForm.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              :default-time="['00:00:00', '23:59:59']"
-            />
-          </el-form-item>
-          
           <el-form-item label="关键词">
             <el-input v-model="filterForm.keyword" placeholder="订单号/商品名称" />
           </el-form-item>
