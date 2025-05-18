@@ -232,7 +232,8 @@ public class OrderServiceImpl implements OrderService {
         
         // 设置用户信息
         setUser(order, currentUser);
-        
+
+        System.out.println(order);
         return Result.success(order);
     }
 
@@ -451,12 +452,16 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setOrderItems(orderItems);
-        
+
         // 加载订单地址信息
         OrderAddress address = QueryChain.of(orderAddressMapper)
                 .where(ORDER_ADDRESS.ORDER_ID.eq(order.getId()))
                 .one();
         order.setAddress(address);
+
+        //加载用户信息
+        currentUser.setPassword("");
+        order.setUser(currentUser);
 
         return Result.success(order);
     }

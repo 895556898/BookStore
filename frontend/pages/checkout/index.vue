@@ -189,6 +189,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useUserStore } from "~/stores/user.js";
 
 const router = useRouter()
 const loading = ref(true)
@@ -207,6 +208,7 @@ const addressForm = ref({
   isDefault: false
 })
 const createdOrderId = ref('')
+const userStore = useUserStore()
 
 // 地址表单验证规则
 const addressRules = {
@@ -342,9 +344,16 @@ const submitOrder = async () => {
       detailAddress: addressForm.value.detailAddress,
       zipCode: addressForm.value.zipCode
     }
+
+    //构建用户信息
+    console.log(userStore)
+    console.log('————————————')
+    console.log(userStore.user)
     
     const orderRequest = {
       items: items,
+      userId: userStore.user.id,
+      userName: userStore.user.username,
       paymentMethod: paymentMethod.value,
       addressInfo: addressInfo,
       remark: remark.value
