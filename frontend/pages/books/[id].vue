@@ -80,6 +80,18 @@
             </span>
             <span class="stock-count" v-if="book.stock > 0">库存: {{ book.stock }}</span>
             <span class="sales-count">销量: {{ book.sales || 0 }}</span>
+            <span :class="['status-tag', book.status ? 'on-sale' : 'off-sale']">
+              {{ book.status ? '在售' : '已下架' }}
+            </span>
+          </div>
+          
+          <div v-if="!book.status" class="book-status-notice">
+            <el-alert
+              title="此商品已下架，暂时无法购买"
+              type="warning"
+              show-icon
+              :closable="false"
+            />
           </div>
           
           <div class="book-actions">
@@ -87,14 +99,14 @@
               v-model="quantity" 
               :min="1" 
               :max="book.stock || 1" 
-              :disabled="book.stock <= 0"
+              :disabled="book.stock <= 0 || !book.status"
               size="large"
             />
             
             <el-button 
               type="primary" 
               size="large" 
-              :disabled="book.stock <= 0"
+              :disabled="book.stock <= 0 || !book.status"
               @click="addToCart"
             >
               <el-icon><ShoppingCart /></el-icon> 加入购物车
@@ -103,7 +115,7 @@
             <el-button 
               type="danger" 
               size="large" 
-              :disabled="book.stock <= 0"
+              :disabled="book.stock <= 0 || !book.status"
               @click="buyNow"
             >
               立即购买
@@ -525,6 +537,28 @@ onMounted(() => {
   margin-top: 30px;
   display: flex;
   gap: 15px;
+}
+
+.status-tag {
+  margin-left: 15px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.on-sale {
+  color: #67c23a;
+  background-color: #f0f9eb;
+}
+
+.off-sale {
+  color: #f56c6c;
+  background-color: #fef0f0;
+}
+
+.book-status-notice {
+  margin: 15px 0;
 }
 
 .related-books {

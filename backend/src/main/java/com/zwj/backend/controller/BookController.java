@@ -95,11 +95,11 @@ public class BookController {
     public Result<Void> updateBook(@PathVariable Long id, @RequestBody Book book) {
         return bookService.updateBook(id, book);
     }
-
-    //删除图书
-    @DeleteMapping("/admin/delete/{id}")
+    
+    //切换图书状态（上架/下架）
+    @PutMapping("/admin/toggle-status/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<Void> deleteBook(@PathVariable Long id) {
-        return bookService.deleteBook(id);
+    public Result<Void> toggleBookStatus(@PathVariable Long id) {
+        return bookService.toggleBookStatus(id);
     }
 } 

@@ -40,7 +40,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public Result<Book> getBookById(Long id) {
         Book book = bookMapper.selectOneById(id);
-        if (book != null && book.getStatus()) {
+        if (book != null) {
             book.setTag(getTagsByBookId(id));
             return Result.success(book);
         } else {
@@ -341,27 +341,6 @@ public class BookServiceImpl implements BookService {
         }
     }
 
-    //删除图书
-    @Override
-    @Transactional
-    public Result<Void> deleteBook(Long id) {
-        Book book = bookMapper.selectOneById(id);
-        book.setStatus(false);
-        // 使用正确的字段名删除关联
-
-        AtomicInteger affectedRows1 = new AtomicInteger(); // 商品表中受影响的行数
-        Db.tx(() -> {
-            affectedRows1.set(bookMapper.update(book));
-            return affectedRows1.get() > 0;
-        });
-
-        if (affectedRows1.get() > 0) {
-            return Result.success(null);
-        } else {
-            return Result.error(400,"删除失败");
-        }
-    }
-
     @Override
     @Transactional
     public void updateStock(Long id, Integer quantity) {
@@ -398,5 +377,29 @@ public class BookServiceImpl implements BookService {
         if (src.getCost() != null) target.setCost(src.getCost());
         if (src.getStock() != null) target.setStock(src.getStock());
         if (src.getTag() != null) target.setTag(src.getTag());
+    }
+    
+    @Override
+    @Transactional
+    public Result<Void> toggleBookStatus(Long id) {
+        Book book = bookMapper.selectOneById(id);
+        if (book == null) {
+            return Result.error(404, "书籍不存在！");
+        }
+        
+        // 切换状态
+        book.setStatus(!book.getStatus());
+        
+        AtomicInteger affectedRows = new AtomicInteger();
+        Db.tx(() -> {
+            affectedRows.set(bookMapper.update(book));
+            return affectedRows.get() > 0;
+        });
+        
+        if (affectedRows.get() > 0) {
+            return Result.success(null);
+        } else {
+            return Result.error(400, "状态切换失败");
+        }
     }
 }

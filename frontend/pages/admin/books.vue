@@ -69,10 +69,21 @@
       <el-table-column prop="stock" label="库存" min-width="8" sortable="custom" />
       <el-table-column prop="isbn" label="ISBN" min-width="15" sortable="custom" />
       <el-table-column prop="sales" label="销量" min-width="8" sortable="custom" />
+      <el-table-column prop="status" label="状态" min-width="8">
+        <template #default="scope">
+          <el-tag
+            :type="scope.row.status ? 'success' : 'danger'"
+            effect="dark"
+            @click="handleToggleStatus(scope.row)"
+            style="cursor: pointer;"
+          >
+            {{ scope.row.status ? '在售' : '下架' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" fixed="right" min-width="12">
         <template #default="scope">
-          <el-button type="danger" size="small" @click="handleDelete(scope.row)" icon="Delete">删除</el-button>
-          <el-button type="primary" size="small" @click="handleEdit(scope.row)" icon="Edit">修改</el-button>
+          <el-button type="primary" size="small" icon="Edit" @click="handleEdit(scope.row)">修改</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -189,20 +200,6 @@
       </template>
     </el-dialog>
 
-    <!-- 删除确认对话框 -->
-    <el-dialog
-      v-model="deleteDialogVisible"
-      title="确认删除"
-      width="30%"
-    >
-      <p>确定要删除书籍 "{{ bookToDelete?.title }}" 吗？此操作不可撤销。</p>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -222,9 +219,6 @@ const dialogVisible = ref(false)
 const isEditing = ref(false)
 const bookFormRef = ref(null)
 const submitLoading = ref(false)
-const deleteDialogVisible = ref(false)
-const deleteLoading = ref(false)
-const bookToDelete = ref(null)
 const searchQuery = ref('')
 const authorQuery = ref('')
 const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
@@ -563,63 +557,6 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
-// 处理删除
-const handleDelete = (row) => {
-  bookToDelete.value = row
-  deleteDialogVisible.value = true
-}
-
-// 确认删除
-const confirmDelete = async () => {
-  if (!bookToDelete.value) return
-  
-  deleteLoading.value = true
-  try {
-    // 获取存储的token
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-    
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    
-    // 如果有token，添加到请求头
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-    
-    const response = await fetch(`${baseUrl.value}/api/book/admin/delete/${bookToDelete.value.id}`, {
-      method: 'DELETE',
-      headers,
-      credentials: 'include'
-    })
-    
-    // 检查是否认证失败
-    if (response.status === 401 || response.status === 403) {
-      ElMessage.error('登录已过期或权限不足，请重新登录')
-      deleteDialogVisible.value = false
-      // 可选：重定向到登录页
-      setTimeout(() => {
-        router.push('/login')
-      }, 1500)
-      return
-    }
-    
-    const data = await response.json()
-    if (data && data.code === 200) {
-      ElMessage.success('删除成功')
-      fetchBooks()
-    } else {
-      ElMessage.error(data?.message || '删除失败')
-    }
-  } catch (error) {
-    console.error('删除图书错误:', error)
-    ElMessage.error('删除失败: ' + error.message)
-  } finally {
-    deleteLoading.value = false
-    deleteDialogVisible.value = false
-  }
-}
-
 // 提交表单
 const submitBookForm = async () => {
   if (!bookFormRef.value) return
@@ -779,6 +716,51 @@ const handleSortChange = ({ prop, order }) => {
   }
   
   fetchBooks()
+}
+
+// 处理状态切换
+const handleToggleStatus = async (row) => {
+  try {
+    // 获取存储的token
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    
+    // 如果有token，添加到请求头
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(`${baseUrl.value}/api/book/admin/toggle-status/${row.id}`, {
+      method: 'PUT',
+      headers,
+      credentials: 'include'
+    })
+    
+    // 检查是否认证失败
+    if (response.status === 401 || response.status === 403) {
+      ElMessage.error('登录已过期或权限不足，请重新登录')
+      // 可选：重定向到登录页
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
+      return
+    }
+    
+    const data = await response.json()
+    if (data && data.code === 200) {
+      ElMessage.success(row.status ? '图书已下架' : '图书已上架')
+      // 不刷新整个列表，只更新当前行数据
+      row.status = !row.status
+    } else {
+      ElMessage.error(data?.message || '状态切换失败')
+    }
+  } catch (error) {
+    console.error('切换图书状态错误:', error)
+    ElMessage.error('状态切换失败: ' + error.message)
+  }
 }
 
 // 生命周期钩子

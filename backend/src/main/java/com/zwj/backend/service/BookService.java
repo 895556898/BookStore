@@ -17,7 +17,6 @@ public interface BookService {
     Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids);
     Result<Void> createBook(Book book);
     Result<Void> updateBook(Long id, Book book);
-
-    Result<Void> deleteBook(Long id);
     void updateStock(Long id, Integer quantity);
+    Result<Void> toggleBookStatus(Long id);
 }
