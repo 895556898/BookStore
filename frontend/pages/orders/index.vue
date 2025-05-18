@@ -29,7 +29,7 @@
       <div class="filter-bar">
         <el-form :inline="true" :model="filterForm" class="order-filter">
           <el-form-item label="订单状态">
-            <el-select v-model="filterForm.status" placeholder="全部" clearable>
+            <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 120px;">
               <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
