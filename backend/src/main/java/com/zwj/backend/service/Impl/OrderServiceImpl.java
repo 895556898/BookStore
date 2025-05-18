@@ -432,7 +432,7 @@ public class OrderServiceImpl implements OrderService {
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .where(ORDER.ID.eq(id));
 
-        if (!"ADMIN".equals(currentUser.getRole())) {
+        if (!"admin".equals(currentUser.getRole())) {
             queryWrapper.and(ORDER.USER_ID.eq(currentUser.getId()));
         }
 

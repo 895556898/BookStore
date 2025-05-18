@@ -90,4 +90,10 @@ public class OrderController {
     public Result<Order> completeOrder(@PathVariable("id") Long id){
         return orderService.completeOrder(id);
     }
+
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Order> getAdminOrderDetail(@PathVariable("id") Long id) {
+        return orderService.getOrderDetail(id);
+    }
 }

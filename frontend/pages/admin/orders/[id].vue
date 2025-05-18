@@ -205,15 +205,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Wallet, Van, CircleCheck } from '@element-plus/icons-vue'
-import { formatDate as formatDateUtil } from '../../utils/dateUtils'
-import { useUserStore } from '../../stores/user'
+import { formatDate as formatDateUtil } from '../../../../utils/dateUtils'
+import { useUserStore } from '../../../../stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const orderId = route.params.id
 const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
-const isFromAdmin = ref(false)
+const isAdmin = ref(false)
 
 const order = ref({})
 const loading = ref(true)
@@ -241,13 +241,18 @@ const fetchOrderDetail = async () => {
   }
 
   // 检查用户是否是管理员
-  isFromAdmin.value = userStore.getUserRole.toLowerCase() === 'admin' && route.query.fromAdmin === 'true';
+  isAdmin.value = userStore.getUserRole.toLowerCase() === 'admin';
+  
+  // 如果不是管理员，重定向到用户订单页面
+  if (!isAdmin.value) {
+    ElMessage.warning('您没有权限访问此页面');
+    router.push('/orders');
+    return;
+  }
 
   try {
-    // 根据用户角色使用不同的API接口
-    const apiUrl = isFromAdmin.value 
-      ? `${baseUrl.value}/api/order/admin/${orderId}` 
-      : `${baseUrl.value}/api/order/${orderId}`;
+    // 使用管理员API获取订单详情
+    const apiUrl = `${baseUrl.value}/api/order/admin/${orderId}`;
 
     const response = await fetch(apiUrl, {
       credentials: 'include',
@@ -546,11 +551,7 @@ const deleteOrder = () => {
 
 // 处理返回按钮点击
 const handleReturn = () => {
-  if (isFromAdmin.value) {
-    router.push('/admin/orders');
-  } else {
-    router.push('/orders');
-  }
+  router.push('/admin/orders');
 }
 
 onMounted(() => {

@@ -184,8 +184,8 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { formatDate as formatDateUtil } from '../../utils/dateUtils'
-import { useUserStore } from '../../stores/user'
+import { formatDate as formatDateUtil } from '../../../../utils/dateUtils'
+import { useUserStore } from '../../../../stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -355,7 +355,7 @@ const handleSizeChange = (size) => {
 
 // 跳转到订单详情
 const goToOrderDetail = (orderId) => {
-  router.push(`/orders/${orderId}`)
+  router.push(`/admin/orders/${orderId}`)
 }
 
 // 跳转到商品详情
