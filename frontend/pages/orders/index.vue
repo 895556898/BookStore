@@ -105,16 +105,7 @@
                 </el-button>
               </template>
               
-              <template v-if="scope.row.status === 'DELIVERED'">
-                <el-button type="success" size="small" @click="confirmReceived(scope.row.id)">
-                  确认收货
-                </el-button>
-              </template>
-              
               <template v-if="scope.row.status === 'COMPLETED'">
-                <el-button type="primary" plain size="small" @click="reviewOrder(scope.row.id)">
-                  评价
-                </el-button>
                 <el-button type="danger" plain size="small" @click="deleteOrder(scope.row.id)">
                   删除订单
                 </el-button>

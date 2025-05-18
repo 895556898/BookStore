@@ -5,6 +5,7 @@ import com.zwj.backend.entity.Order;
 import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.dto.OrderRequest;
 import com.zwj.backend.service.OrderService;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -71,13 +72,6 @@ public class OrderController {
         return orderService.cancelOrder(id);
     }
 
-//    // 管理员接口
-//    @GetMapping("/admin")
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public Result<List<Order>> getAllOrders() {
-//        return orderService.getAllOrders();
-//    }
-
     @GetMapping("/admin/search")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<Page<Order>> searchAllOrders(
@@ -89,5 +83,11 @@ public class OrderController {
             @RequestParam(required = false) 
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
         return orderService.searchAllOrders(keyword, page, pageSize, start, end);
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Order> completeOrder(@PathVariable("id") Long id){
+        return orderService.completeOrder(id);
     }
 }

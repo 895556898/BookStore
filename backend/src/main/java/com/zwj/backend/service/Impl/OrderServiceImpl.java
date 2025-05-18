@@ -360,9 +360,6 @@ public class OrderServiceImpl implements OrderService {
                 book.setTag(getTagsByBookId(book.getId()));
                 orderItem.setBook(book);
             }
-            System.out.println(order);
-            System.out.println(order.getUserId());
-            System.out.println("——————————————");
 
             //加载用户信息
             User user = userMapper.selectOneById(order.getUserId());
@@ -640,4 +637,41 @@ public class OrderServiceImpl implements OrderService {
         // 如果找不到对应的名称，则返回原始代码
         return code;
     }
-} 
+
+    @Override
+    public Result<Order> completeOrder(Long id) {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            return Result.error(401, "用户未登录");
+        }
+
+        // 查询订单
+        Order order = QueryChain.of(orderMapper)
+                .where(ORDER.ID.eq(id))
+                .and(ORDER.USER_ID.eq(currentUser.getId()))
+                .one();
+
+        if (order == null) {
+            return Result.error(404, "订单不存在");
+        }
+
+        // 只能完成已支付的订单
+        if (!"PAID".equals(order.getStatus())) {
+            return Result.error(400, "只能完成已支付的订单");
+        }
+
+        if (currentUser.getId() != order.getUserId()) {
+            return Result.error(400,"用户不匹配，请刷新页面重试");
+        }
+
+        // 修改订单状态
+        order.setStatus("COMPLETED");
+        order.setUpdateTime(LocalDateTime.now());
+        orderMapper.update(order);
+
+        // 设置用户信息
+        setUser(order,currentUser);
+
+        return Result.success(order);
+    }
+}

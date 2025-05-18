@@ -52,7 +52,6 @@
           </template>
           
           <template v-if="order.status === 'COMPLETED'">
-            <el-button type="primary" @click="reviewOrder">评价订单</el-button>
             <el-button type="danger" plain @click="deleteOrder">删除订单</el-button>
           </template>
           
@@ -143,22 +142,6 @@
           <div class="price-item total">
             <span class="label">实付款：</span>
             <span class="total-price">￥{{ order.totalAmount?.toFixed(2) || '0.00' }}</span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 物流信息 -->
-      <div v-if="order.status !== 'PENDING' && order.status !== 'CANCELLED'" class="section">
-        <h2 class="section-title">物流信息</h2>
-        <div class="section-content">
-          <div v-if="order.shipment" class="shipment-info">
-            <p><span class="label">物流公司：</span>{{ order.shipment.company }}</p>
-            <p><span class="label">物流单号：</span>{{ order.shipment.trackingNumber }}</p>
-            <p><span class="label">发货时间：</span>{{ formatDate(order.shipment.shipTime) }}</p>
-          </div>
-          <div v-else class="empty-shipment">
-            <p v-if="order.status === 'PAID'">商家正在备货，请耐心等待发货</p>
-            <p v-else>暂无物流信息</p>
           </div>
         </div>
       </div>

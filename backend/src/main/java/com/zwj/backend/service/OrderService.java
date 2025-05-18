@@ -39,4 +39,7 @@ public interface OrderService {
     
     // 取消订单
     Result<Order> cancelOrder(Long id);
+
+    //完成订单
+    Result<Order> completeOrder(Long id);
 } 

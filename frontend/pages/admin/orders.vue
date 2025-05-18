@@ -101,24 +101,24 @@
               
               <!-- 已支付待发货 -->
               <template v-if="scope.row.status === 'PAID'">
-                <el-button type="success" size="small" @click="shipOrder(scope.row.id)">
-                  确认发货
-                </el-button>
-              </template>
-              
-              <!-- 已发货待收货 -->
-              <template v-if="scope.row.status === 'SHIPPED'">
-                <el-button type="success" size="small" @click="deliverOrder(scope.row.id)">
-                  确认送达
-                </el-button>
-              </template>
-              
-              <!-- 待收货 -->
-              <template v-if="scope.row.status === 'DELIVERED'">
                 <el-button type="success" size="small" @click="completeOrder(scope.row.id)">
                   完成订单
                 </el-button>
               </template>
+              
+<!--              &lt;!&ndash; 已发货待收货 &ndash;&gt;-->
+<!--              <template v-if="scope.row.status === 'SHIPPED'">-->
+<!--                <el-button type="success" size="small" @click="deliverOrder(scope.row.id)">-->
+<!--                  确认送达-->
+<!--                </el-button>-->
+<!--              </template>-->
+<!--              -->
+<!--              &lt;!&ndash; 待收货 &ndash;&gt;-->
+<!--              <template v-if="scope.row.status === 'DELIVERED'">-->
+<!--                <el-button type="success" size="small" @click="completeOrder(scope.row.id)">-->
+<!--                  完成订单-->
+<!--                </el-button>-->
+<!--              </template>-->
             </div>
           </template>
         </el-table-column>
