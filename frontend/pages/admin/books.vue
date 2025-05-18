@@ -20,12 +20,11 @@
       <el-table-column prop="id" label="ID" min-width="5" sortable="custom" />
       <el-table-column label="封面" min-width="8">
         <template #default="scope">
-          <div class="book-cover">
+          <div class="book-cover" @click="goToBookDetail(scope.row.id)">
             <el-image 
               :src="scope.row.cover || defaultCover" 
               fit="cover"
-              :preview-src-list="[scope.row.cover || defaultCover]"
-              style="width: 60px; height: 80px;"
+              style="width: 60px; height: 80px; cursor: pointer;"
             >
               <template #error>
                 <div class="image-error">
@@ -767,6 +766,11 @@ const handleToggleStatus = async (row) => {
 onMounted(() => {
   fetchBooks()
 })
+
+// 添加跳转到图书详情页的功能
+const goToBookDetail = (id) => {
+  router.push(`/books/${id}`)
+}
 </script>
 
 <style lang="scss" scoped>

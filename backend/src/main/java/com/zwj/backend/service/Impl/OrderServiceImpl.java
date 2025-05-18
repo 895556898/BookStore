@@ -341,6 +341,8 @@ public class OrderServiceImpl implements OrderService {
         // 添加关键词搜索条件
         if (keyword != null && !keyword.isEmpty()) {
             queryWrapper.and(ORDER.ID.like("%" + keyword + "%"));
+//                        .or(ORDER.USER_ID.getName().like("%" + keyword + "%"));
+            // TODO: 优化搜索功能，增加对用户名的搜索支持
         }
 
         queryWrapper.orderBy(ORDER.CREATE_TIME.desc());
