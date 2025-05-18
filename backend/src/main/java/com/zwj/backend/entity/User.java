@@ -2,9 +2,7 @@ package com.zwj.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
 
 @Entity
 @Table(name = "user")
@@ -39,14 +37,12 @@ public class User {
     @Column(nullable = false, unique = true)
     private String phone;
     private String role;                //用户类型
-    private String email;
 
     public User(){
         id = 0;
         username = "";
         role = "user";
         phone = "";
-        email = "";
     }
 
 }

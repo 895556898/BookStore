@@ -605,7 +605,6 @@ public class OrderServiceImpl implements OrderService {
         user.setUsername(currentUser.getUsername());
         user.setId(currentUser.getId());
         user.setPhone(currentUser.getPhone());
-        user.setEmail(currentUser.getEmail());
 
         order.setUser(user);
     }
