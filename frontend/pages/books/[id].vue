@@ -324,39 +324,26 @@ const addToCart = async () => {
   }
 }
 
-// 立即购买
+//立即购买
 const buyNow = async () => {
   if (!checkLogin()) return
-  
-  try {
-    // 先加入购物车
-    const response = await fetch(`${baseUrl.value}/api/cart/add?bookId=${bookId}&quantity=${quantity.value}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: getAuthHeaders()
-    })
-    
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        ElMessage.warning('请先登录')
-        router.push('/login')
-        return
-      }
-      throw new Error(`HTTP error! Status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    if (result.code === 200) {
-      // 跳转到结算页面
-      router.push('/checkout')
-    } else {
-      ElMessage.error(result.message || '操作失败')
-    }
-  } catch (err) {
-    console.error('购买失败:', err)
-    ElMessage.error('操作失败，请稍后再试')
+
+  const item = {
+    book: {
+      id: book.value.id,
+      title: book.value.title,
+      author: book.value.writer || book.value.author,
+      price: book.value.price,
+      cover: book.value.cover
+    },
+    quantity: quantity.value
   }
+
+  localStorage.setItem('checkoutItems', JSON.stringify([item]))
+
+  router.push('/checkout')
 }
+
 
 // 检查是否登录
 const checkLogin = () => {

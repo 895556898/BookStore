@@ -292,7 +292,6 @@ public class OrderServiceImpl implements OrderService {
     public Result<List<Order>> getAllOrders() {
         // 检查是否为管理员
         User currentUser = getCurrentUser();
-        System.out.println(currentUser);
         if (currentUser == null || !"admin".equals(currentUser.getRole())) {
             return Result.error(403, "权限不足");
         }
@@ -324,7 +323,6 @@ public class OrderServiceImpl implements OrderService {
     public Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end) {
         // 检查是否为管理员
         User currentUser = getCurrentUser();
-        System.out.println(currentUser);
         if (currentUser == null || (!"admin".equals(currentUser.getRole()))) {
             return Result.error(403, "权限不足");
         }
