@@ -205,8 +205,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Wallet, Van, CircleCheck } from '@element-plus/icons-vue'
-import { formatDate as formatDateUtil } from '../../../../utils/dateUtils'
-import { useUserStore } from '../../../../stores/user'
+import { formatDate as formatDateUtil } from '~/utils/dateUtils'
+import { useUserStore } from '~/stores/user'
 
 const router = useRouter()
 const route = useRoute()

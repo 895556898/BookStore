@@ -643,15 +643,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Result<Order> completeOrder(Long id) {
         User currentUser = getCurrentUser();
-        if (currentUser == null) {
-            return Result.error(401, "用户未登录");
+        if (currentUser == null || (!"admin".equals(currentUser.getRole()))) {
+            return Result.error(403, "权限不足");
         }
 
         // 查询订单
-        Order order = QueryChain.of(orderMapper)
-                .where(ORDER.ID.eq(id))
-                .and(ORDER.USER_ID.eq(currentUser.getId()))
-                .one();
+        Order order = orderMapper.selectOneByQuery(QueryWrapper.create().where(ORDER.ID.eq(id)));
 
         if (order == null) {
             return Result.error(404, "订单不存在");
@@ -662,17 +659,14 @@ public class OrderServiceImpl implements OrderService {
             return Result.error(400, "只能完成已支付的订单");
         }
 
-        if (currentUser.getId() != order.getUserId()) {
-            return Result.error(400,"用户不匹配，请刷新页面重试");
-        }
-
         // 修改订单状态
         order.setStatus("COMPLETED");
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.update(order);
 
         // 设置用户信息
-        setUser(order,currentUser);
+        User user = userMapper.selectOneById(order.getUserId());
+        setUser(order,user);
 
         return Result.success(order);
     }

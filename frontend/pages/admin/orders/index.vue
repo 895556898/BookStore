@@ -172,8 +172,8 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { formatDate as formatDateUtil } from '../../../../utils/dateUtils'
-import { useUserStore } from '../../../../stores/user'
+import { formatDate as formatDateUtil } from '~/utils/dateUtils'
+import { useUserStore } from '~/stores/user.js'
 
 const router = useRouter()
 const userStore = useUserStore()
