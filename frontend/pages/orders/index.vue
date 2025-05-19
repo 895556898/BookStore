@@ -46,7 +46,7 @@
       </div>
       
       <!-- 订单表格 -->
-      <el-table :data="orders" style="width: 100%" v-loading="loading" border stripe>
+      <el-table v-loading="loading" :data="orders" style="width: 100%" border stripe>
         <el-table-column prop="id" label="订单号" min-width="10" />
         <el-table-column label="订单状态" min-width="10">
           <template #default="scope">
@@ -138,7 +138,7 @@
         <div class="payment-qr-code">
           <p>请使用{{ getPaymentMethodText(currentOrder?.paymentMethod) }}扫描下方二维码完成支付</p>
           <div class="qr-code">
-            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"></el-image>
+            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"/>
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatDate as formatDateUtil } from '~/utils/dateUtils'
@@ -225,9 +225,7 @@ const getStatusType = (status) => {
 const getPaymentMethodText = (method) => {
   const methods = {
     'WECHAT': '微信支付',
-    'ALIPAY': '支付宝',
-    'BANK_CARD': '银行卡',
-    'CASH': '货到付款'
+    'ALIPAY': '支付宝'
   }
   return methods[method] || '未知支付方式'
 }
@@ -327,12 +325,6 @@ const goToBook = (bookId) => {
   router.push(`/books/${bookId}`)
 }
 
-// 支付订单
-const payOrder = (order) => {
-  currentOrder.value = order
-  showPaymentDialog.value = true
-}
-
 // 确认支付
 const confirmPayment = async () => {
   if (!currentOrder.value) return
@@ -402,48 +394,6 @@ const cancelOrder = (orderId) => {
       ElMessage.error('取消订单失败，请稍后再试')
     }
   }).catch(() => {})
-}
-
-// 确认收货
-const confirmReceived = (orderId) => {
-  ElMessageBox.confirm('确认已收到商品吗?', '提示', {
-    confirmButtonText: '确认收货',
-    cancelButtonText: '取消',
-    type: 'info'
-  }).then(async () => {
-    try {
-      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/received`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: userStore.getAuthHeaders()
-      })
-      
-      if (response.status === 401 || response.status === 403) {
-        ElMessage.error('登录已过期或权限不足，请重新登录')
-        userStore.clearUser()
-        setTimeout(() => {
-          router.push('/login')
-        }, 1500)
-        return
-      }
-      
-      const result = await response.json()
-      if (result.code === 200) {
-        ElMessage.success('确认收货成功')
-        fetchOrders() // 刷新订单列表
-      } else {
-        ElMessage.error(result.message || '确认收货失败')
-      }
-    } catch (error) {
-      console.error('确认收货失败:', error)
-      ElMessage.error('确认收货失败，请稍后再试')
-    }
-  }).catch(() => {})
-}
-
-// 评价订单
-const reviewOrder = (orderId) => {
-  router.push(`/orders/${orderId}/review`)
 }
 
 // 删除订单
@@ -522,9 +472,6 @@ onMounted(() => {
 }
 
 /* 表格内容字体调整 */
-:deep(.el-table) {
-  font-size: 15px; /* 表格字体调整 */
-}
 
 :deep(.el-table th) {
   font-size: 16px; /* 表头字体调整 */
@@ -558,13 +505,6 @@ onMounted(() => {
 }
 
 /* 按钮字体大小调整 */
-:deep(.el-button) {
-  font-size: 14px;
-}
-
-:deep(.el-button--small) {
-  font-size: 13px;
-}
 
 .pagination {
   margin-top: 20px;
@@ -573,9 +513,6 @@ onMounted(() => {
 }
 
 /* 分页组件字体调整 */
-:deep(.el-pagination) {
-  font-size: 15px;
-}
 
 .payment-dialog-content {
   text-align: center;
@@ -600,13 +537,5 @@ onMounted(() => {
 }
 
 /* 表单控件字体大小调整 */
-:deep(.el-form-item__label) {
-  font-size: 15px;
-}
 
-:deep(.el-input__inner),
-:deep(.el-select__input),
-:deep(.el-select-dropdown__item) {
-  font-size: 15px;
-}
-</style> 
+</style>

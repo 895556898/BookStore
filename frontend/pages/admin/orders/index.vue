@@ -39,7 +39,7 @@
       </div>
       
       <!-- 订单表格 -->
-      <el-table :data="orders" style="width: 100%" v-loading="loading" border stripe>
+      <el-table v-loading="loading" :data="orders" style="width: 100%" border stripe>
         <el-table-column prop="id" label="订单号" min-width="10" />
         <el-table-column label="用户信息" min-width="12">
           <template #default="scope">
@@ -161,7 +161,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showActionDialog = false">取消</el-button>
-          <el-button type="primary" @click="confirmAction" :loading="actionLoading">确认</el-button>
+          <el-button type="primary" :loading="actionLoading" @click="confirmAction">确认</el-button>
         </span>
       </template>
     </el-dialog>
@@ -169,9 +169,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { formatDate as formatDateUtil } from '~/utils/dateUtils'
 import { useUserStore } from '~/stores/user.js'
 
@@ -351,31 +351,6 @@ const goToBook = (bookId) => {
   router.push(`/books/${bookId}`)
 }
 
-// 发货
-const shipOrder = (orderId) => {
-  const order = orders.value.find(o => o.id === orderId)
-  if (!order) return
-  
-  currentOrder.value = order
-  actionType.value = 'ship'
-  actionDialogTitle.value = '确认发货'
-  showActionDialog.value = true
-  
-  // 重置表单
-  shipForm.company = 'SF'
-  shipForm.trackingNumber = ''
-}
-
-// 确认送达
-const deliverOrder = (orderId) => {
-  const order = orders.value.find(o => o.id === orderId)
-  if (!order) return
-  
-  currentOrder.value = order
-  actionType.value = 'deliver'
-  actionDialogTitle.value = '确认订单已送达'
-  showActionDialog.value = true
-}
 
 // 完成订单
 const completeOrder = (orderId) => {
@@ -395,7 +370,7 @@ const confirmAction = async () => {
   actionLoading.value = true
   try {
     let url = ''
-    let method = 'POST'
+    const method = 'POST'
     let body = {}
     
     switch (actionType.value) {
@@ -478,11 +453,6 @@ onMounted(() => {
   border-bottom: 1px solid #eee;
 }
 
-.loading, .empty-orders, .login-required {
-  margin: 40px 0;
-  text-align: center;
-}
-
 .filter-bar {
   background-color: #fff;
   padding: 20px;
@@ -492,9 +462,6 @@ onMounted(() => {
 }
 
 /* 表格内容字体调整 */
-:deep(.el-table) {
-  font-size: 15px;
-}
 
 :deep(.el-table th) {
   font-size: 16px;
@@ -528,13 +495,6 @@ onMounted(() => {
 }
 
 /* 按钮字体大小调整 */
-:deep(.el-button) {
-  font-size: 14px;
-}
-
-:deep(.el-button--small) {
-  font-size: 13px;
-}
 
 .pagination {
   margin-top: 20px;
@@ -543,9 +503,6 @@ onMounted(() => {
 }
 
 /* 分页组件字体调整 */
-:deep(.el-pagination) {
-  font-size: 15px;
-}
 
 .action-dialog-content {
   text-align: center;
@@ -559,15 +516,6 @@ onMounted(() => {
 }
 
 /* 表单控件字体大小调整 */
-:deep(.el-form-item__label) {
-  font-size: 15px;
-}
-
-:deep(.el-input__inner),
-:deep(.el-select__input),
-:deep(.el-select-dropdown__item) {
-  font-size: 15px;
-}
 
 .user-info {
   display: flex;

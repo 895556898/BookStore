@@ -46,11 +46,6 @@
             <el-button @click="cancelOrder">取消订单</el-button>
           </template>
           
-          <template v-if="order.status === 'SHIPPED' || order.status === 'DELIVERED'">
-            <el-button type="primary" @click="trackShipment">查看物流</el-button>
-            <el-button type="success" @click="confirmReceived">确认收货</el-button>
-          </template>
-          
           <template v-if="order.status === 'COMPLETED'">
             <el-button type="danger" plain @click="deleteOrder">删除订单</el-button>
           </template>
@@ -98,8 +93,8 @@
                     <el-image
                       :src="scope.row.book.cover || '/default-book.jpg'"
                       fit="cover"
-                      @click="goToBook(scope.row.book.id)"
                       class="book-cover"
+                      @click="goToBook(scope.row.book.id)"
                     />
                   </div>
                   <div class="product-info">
@@ -162,7 +157,7 @@
         <div class="payment-qr-code">
           <p>请使用{{ getPaymentMethodText(order?.paymentMethod) }}扫描下方二维码完成支付</p>
           <div class="qr-code">
-            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"></el-image>
+            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"/>
           </div>
         </div>
       </div>
@@ -201,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Wallet, Van, CircleCheck } from '@element-plus/icons-vue'
@@ -342,9 +337,7 @@ const formatDate = (dateString) => {
 const getPaymentMethodText = (method) => {
   const methods = {
     'WECHAT': '微信支付',
-    'ALIPAY': '支付宝',
-    'BANK_CARD': '银行卡',
-    'CASH': '货到付款'
+    'ALIPAY': '支付宝'
   }
   return methods[method] || '未知支付方式'
 }
@@ -441,70 +434,6 @@ const cancelOrder = () => {
       ElMessage.error('取消订单失败，请稍后再试')
     }
   }).catch(() => {})
-}
-
-// 查看物流
-const trackShipment = () => {
-  if (!order.value.shipment || !order.value.shipment.trackingNumber) {
-    ElMessage.warning('暂无物流信息')
-    return
-  }
-  
-  // 模拟获取物流信息
-  // 实际项目中应该从API获取
-  tracking.value = [
-    { time: '2023-05-10 18:30:00', content: '已签收，签收人：本人' },
-    { time: '2023-05-10 11:20:00', content: '快件已到达【北京朝阳区公园路营业点】，派送员：王师傅，电话：18888888888' },
-    { time: '2023-05-09 18:00:00', content: '快件已发车，正在前往【北京市】' },
-    { time: '2023-05-08 23:00:00', content: '快件已到达【上海中转中心】' },
-    { time: '2023-05-08 21:00:00', content: '快件已从【上海徐汇区营业点】发出' },
-    { time: '2023-05-08 18:00:00', content: '【上海徐汇区营业点】已揽收，揽收员：李师傅，电话：17777777777' },
-    { time: '2023-05-08 14:22:00', content: '卖家已发货' }
-  ]
-  
-  showTrackingDialog.value = true
-}
-
-// 确认收货
-const confirmReceived = () => {
-  ElMessageBox.confirm('确认已收到商品吗?', '提示', {
-    confirmButtonText: '确认收货',
-    cancelButtonText: '取消',
-    type: 'info'
-  }).then(async () => {
-    try {
-      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/received`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: userStore.getAuthHeaders()
-      })
-      
-      if (response.status === 401 || response.status === 403) {
-        ElMessage.error('登录已过期或权限不足，请重新登录')
-        userStore.clearUser()
-        setTimeout(() => {
-          router.push('/login')
-        }, 1500)
-        return
-      }
-      
-      const result = await response.json()
-      if (result.code === 200) {
-        ElMessage.success('确认收货成功')
-        fetchOrderDetail() // 刷新订单详情
-      } else {
-        ElMessage.error(result.message || '确认收货失败')
-      }
-    } catch (error) {
-      console.error('确认收货失败:', error)
-      ElMessage.error('确认收货失败，请稍后再试')
-    }
-  }).catch(() => {})
-}
-
-// 评价订单
-const reviewOrder = () => {
-  router.push(`/orders/${orderId}/review`)
 }
 
 // 删除订单
@@ -607,9 +536,6 @@ onMounted(() => {
 }
 
 /* 步骤条字体调整 */
-:deep(.el-step__title) {
-  font-size: 16px;
-}
 
 .order-actions {
   margin-top: 20px;
@@ -651,9 +577,6 @@ onMounted(() => {
 }
 
 /* 表格内容字体调整 */
-:deep(.el-table) {
-  font-size: 15px;
-}
 
 :deep(.el-table th) {
   font-size: 16px;
@@ -730,13 +653,6 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.empty-shipment, .empty-tracking {
-  color: #999;
-  text-align: center;
-  padding: 20px 0;
-  font-size: 16px;
-}
-
 .payment-dialog-content {
   text-align: center;
   font-size: 16px;
@@ -759,16 +675,6 @@ onMounted(() => {
 }
 
 /* 时间线内容字体调整 */
-:deep(.el-timeline-item__content) {
-  font-size: 15px;
-}
-
-:deep(.el-timeline-item__timestamp) {
-  font-size: 14px;
-}
 
 /* 按钮字体大小调整 */
-:deep(.el-button) {
-  font-size: 14px;
-}
-</style> 
+</style>

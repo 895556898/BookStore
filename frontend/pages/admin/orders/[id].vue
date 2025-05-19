@@ -98,8 +98,8 @@
                     <el-image
                       :src="scope.row.book.cover || '/default-book.jpg'"
                       fit="cover"
-                      @click="goToBook(scope.row.book.id)"
                       class="book-cover"
+                      @click="goToBook(scope.row.book.id)"
                     />
                   </div>
                   <div class="product-info">
@@ -162,7 +162,7 @@
         <div class="payment-qr-code">
           <p>请使用{{ getPaymentMethodText(order?.paymentMethod) }}扫描下方二维码完成支付</p>
           <div class="qr-code">
-            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"></el-image>
+            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"/>
           </div>
         </div>
       </div>
@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Wallet, Van, CircleCheck } from '@element-plus/icons-vue'
@@ -507,11 +507,6 @@ const confirmReceived = () => {
   }).catch(() => {})
 }
 
-// 评价订单
-const reviewOrder = () => {
-  router.push(`/orders/${orderId}/review`)
-}
-
 // 删除订单
 const deleteOrder = () => {
   ElMessageBox.confirm('确定要删除该订单吗?', '提示', {
@@ -607,11 +602,6 @@ onMounted(() => {
   margin: 30px 0;
 }
 
-/* 步骤条字体调整 */
-:deep(.el-step__title) {
-  font-size: 16px;
-}
-
 .order-actions {
   margin-top: 20px;
   display: flex;
@@ -649,11 +639,6 @@ onMounted(() => {
 .address-info p, .order-info p, .shipment-info p {
   margin: 10px 0;
   font-size: 16px;
-}
-
-/* 表格内容字体调整 */
-:deep(.el-table) {
-  font-size: 15px;
 }
 
 :deep(.el-table th) {
@@ -731,13 +716,6 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.empty-shipment, .empty-tracking {
-  color: #999;
-  text-align: center;
-  padding: 20px 0;
-  font-size: 16px;
-}
-
 .payment-dialog-content {
   text-align: center;
   font-size: 16px;
@@ -759,17 +737,4 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-/* 时间线内容字体调整 */
-:deep(.el-timeline-item__content) {
-  font-size: 15px;
-}
-
-:deep(.el-timeline-item__timestamp) {
-  font-size: 14px;
-}
-
-/* 按钮字体大小调整 */
-:deep(.el-button) {
-  font-size: 14px;
-}
 </style> 
