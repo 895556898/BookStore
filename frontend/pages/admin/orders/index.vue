@@ -17,7 +17,6 @@
     </div>
     
     <div v-else>
-      <!-- 筛选栏 -->
       <div class="filter-bar">
         <el-form :inline="true" :model="filterForm" class="order-filter">
           <el-form-item label="订单状态">
@@ -94,19 +93,6 @@
                 </el-button>
               </template>
               
-<!--              &lt;!&ndash; 已发货待收货 &ndash;&gt;-->
-<!--              <template v-if="scope.row.status === 'SHIPPED'">-->
-<!--                <el-button type="success" size="small" @click="deliverOrder(scope.row.id)">-->
-<!--                  确认送达-->
-<!--                </el-button>-->
-<!--              </template>-->
-<!--              -->
-<!--              &lt;!&ndash; 待收货 &ndash;&gt;-->
-<!--              <template v-if="scope.row.status === 'DELIVERED'">-->
-<!--                <el-button type="success" size="small" @click="completeOrder(scope.row.id)">-->
-<!--                  完成订单-->
-<!--                </el-button>-->
-<!--              </template>-->
             </div>
           </template>
         </el-table-column>
@@ -139,23 +125,6 @@
         <p>用户：{{ currentOrder?.user?.username || '未知用户' }}</p>
         <p>金额：<span class="total-price">￥{{ currentOrder?.totalAmount?.toFixed(2) }}</span></p>
         
-        <template v-if="actionType === 'ship'">
-          <el-form :model="shipForm" label-width="80px">
-            <el-form-item label="快递公司">
-              <el-select v-model="shipForm.company" placeholder="请选择快递公司" style="width: 100%;">
-                <el-option label="顺丰速运" value="SF" />
-                <el-option label="中通快递" value="ZTO" />
-                <el-option label="圆通速递" value="YTO" />
-                <el-option label="申通快递" value="STO" />
-                <el-option label="韵达速递" value="YD" />
-                <el-option label="京东物流" value="JD" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="快递单号">
-              <el-input v-model="shipForm.trackingNumber" placeholder="请输入快递单号" />
-            </el-form-item>
-          </el-form>
-        </template>
       </div>
       
       <template #footer>
@@ -193,12 +162,6 @@ const showActionDialog = ref(false)
 const actionDialogTitle = ref('')
 const actionType = ref('')
 const actionLoading = ref(false)
-
-// 发货表单
-const shipForm = reactive({
-  company: '',
-  trackingNumber: ''
-})
 
 // 订单状态选项
 const statusOptions = [
@@ -351,7 +314,6 @@ const goToBook = (bookId) => {
   router.push(`/books/${bookId}`)
 }
 
-
 // 完成订单
 const completeOrder = (orderId) => {
   const order = orders.value.find(o => o.id === orderId)
@@ -371,19 +333,9 @@ const confirmAction = async () => {
   try {
     let url = ''
     const method = 'POST'
-    let body = {}
+    const body = {}
     
     switch (actionType.value) {
-      case 'ship':
-        url = `${baseUrl.value}/api/order/${currentOrder.value.id}/ship`
-        body = {
-          company: shipForm.company,
-          trackingNumber: shipForm.trackingNumber
-        }
-        break
-      case 'deliver':
-        url = `${baseUrl.value}/api/order/${currentOrder.value.id}/deliver`
-        break
       case 'complete':
         url = `${baseUrl.value}/api/order/${currentOrder.value.id}/complete`
         break

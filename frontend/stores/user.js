@@ -24,17 +24,7 @@ export const useUserStore = defineStore('user', {
       // 将用户信息存储到localStorage
       localStorage.setItem('user', JSON.stringify(user))
     },
-    
-    // 设置token
-    setToken(token) {
-      this.token = token
-      if (token) {
-        localStorage.setItem('token', token)
-      } else {
-        localStorage.removeItem('token')
-      }
-    },
-    
+
     // 清除用户信息
     clearUser() {
       this.user = null
@@ -117,38 +107,6 @@ export const useUserStore = defineStore('user', {
       return headers
     },
     
-    // 检查用户名会话状态
-    async checkUserSession(username) {
-      if (!username) return false
-      
-      try {
-        const baseUrl = process.env.BASE_URL || 'http://localhost:8080'
-        const response = await fetch(`${baseUrl}/api/user/checkSession?username=${encodeURIComponent(username)}`, {
-          method: 'GET',
-          credentials: 'include'
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          if (result.code === 200 && result.data) {
-            // 如果服务器确认会话有效，更新用户信息
-            if (result.data.user) {
-              this.setUser(result.data.user)
-              if (result.data.token) {
-                this.setToken(result.data.token)
-              }
-            }
-            return true
-          }
-        }
-        
-        return false
-      } catch (error) {
-        console.error('User session check failed:', error)
-        return false
-      }
-    },
-    
     // 登出
     async logout() {
       try {
@@ -160,12 +118,10 @@ export const useUserStore = defineStore('user', {
         })
         const result = await response.json()
         
-        // 无论后端是否成功，都清除前端状态
         this.clearUser()
         return result
       } catch (error) {
         console.error('登出失败:', error)
-        // 即使API失败，也清除本地状态
         this.clearUser()
         throw error
       }

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -71,15 +70,6 @@ public class BookController {
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice) {
         return bookService.adminSearchBooks(pageNum, pageSize, keyword, sortBy, sortOrder, minPrice, maxPrice);
-    }
-
-    //按标签查找图书
-    @GetMapping("/searchByTags")
-    public Result<Page<Book>> searchBookByTagIds(
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam List<Long> tids) {
-        return bookService.searchBookByTagIds(pageNum, pageSize, tids);
     }
 
     //添加图书

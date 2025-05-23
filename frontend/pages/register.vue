@@ -104,7 +104,7 @@ const registerForm = ref({
 })
 
 // 验证规则
-const validateConfirmPassword = (rule, value, callback) => {
+const validateConfirmPassword = (value, callback) => {
   if (!value) {
     callback(new Error('请再次输入密码'))
   } else if (value !== registerForm.value.password) {
@@ -114,7 +114,7 @@ const validateConfirmPassword = (rule, value, callback) => {
   }
 }
 
-const validatePhone = (rule, value, callback) => {
+const validatePhone = (value, callback) => {
   if (!value) {
     callback(new Error('请输入手机号'))
   } else if (!/^1[3-9]\d{9}$/.test(value)) {
@@ -129,7 +129,7 @@ const registerRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入用户名'))
         } else {
@@ -142,7 +142,7 @@ const registerRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入密码'))
         } else {
@@ -175,7 +175,6 @@ const registerRules = ref({
   ]
 })
 
-// 定义后端API基础URL
 const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
 
 // 处理注册逻辑
@@ -194,18 +193,14 @@ const handleRegister = async () => {
           phone: registerForm.value.phone
         }
         
-        console.log('准备发送的注册数据:', registerData)
-        
-        // 发送注册请求
         const response = await fetch(`${baseUrl.value}/api/user/register`, {
           method: 'POST',
           body: JSON.stringify(registerData),
           headers: {
             'Content-Type': 'application/json'
           },
-          // 添加CORS相关设置
-          credentials: 'include',  // 包含凭据（cookies等）
-          mode: 'cors'            // 指定CORS模式
+          credentials: 'include',
+          mode: 'cors'
         })
         
         const responseData = await response.json()
@@ -213,10 +208,8 @@ const handleRegister = async () => {
         
         // 处理注册结果
         if (responseData && responseData.code === 200) {
-          // 提示用户
           ElMessage.success('注册成功，即将跳转至登录页面')
           
-          // 3秒后跳转到登录页
           setTimeout(() => {
             navigateTo('/login')
           }, 3000)
@@ -244,7 +237,7 @@ const handleRegister = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f2f5;  // 浅灰色背景
+  background-color: #f0f2f5;
 
   .register-box {
     width: 450px;

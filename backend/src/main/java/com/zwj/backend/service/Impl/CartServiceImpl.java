@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -213,21 +212,6 @@ public class CartServiceImpl implements CartService {
         }
 
         return Result.success(total);
-    }
-
-    @Override
-    public CartItem findCartItemById(Long cartItemId) {
-        return cartItemMapper.selectOneById(cartItemId);
-    }
-
-    @Override
-    public List<CartItem> getCartItemsByIds(List<Long> cartItemIds) {
-        if (cartItemIds == null || cartItemIds.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return QueryChain.of(cartItemMapper)
-                .where(CART_ITEM.ID.in(cartItemIds))
-                .list();
     }
 
     // 加载图书tag

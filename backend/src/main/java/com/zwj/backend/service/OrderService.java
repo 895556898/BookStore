@@ -1,7 +1,6 @@
 package com.zwj.backend.service;
 
 import com.mybatisflex.core.paginate.Page;
-import com.zwj.backend.entity.CartItem;
 import com.zwj.backend.entity.Order;
 import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.dto.OrderRequest;
@@ -16,14 +15,8 @@ public interface OrderService {
     // 创建订单
     Result<Order> addOrder(OrderRequest request);
     
-    // 在购物车项列表中查找指定ID的购物车项
-    CartItem findCartItemById(List<CartItem> cartItems, Long cartItemId);
-    
     // 删除订单
     Result<Order> deleteOrder(Long id);
-    
-//    // 获取所有订单（管理员）
-//    Result<List<Order>> getAllOrders();
     
     // 搜索所有订单（管理员）
     Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end);

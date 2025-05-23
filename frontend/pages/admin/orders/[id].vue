@@ -46,11 +46,6 @@
             <el-button @click="cancelOrder">取消订单</el-button>
           </template>
           
-          <template v-if="order.status === 'SHIPPED' || order.status === 'DELIVERED'">
-            <el-button type="primary" @click="trackShipment">查看物流</el-button>
-            <el-button type="success" @click="confirmReceived">确认收货</el-button>
-          </template>
-          
           <template v-if="order.status === 'COMPLETED'">
             <el-button type="danger" plain @click="deleteOrder">删除订单</el-button>
           </template>
@@ -174,29 +169,7 @@
         </span>
       </template>
     </el-dialog>
-    
-    <!-- 物流追踪对话框 -->
-    <el-dialog
-      v-model="showTrackingDialog"
-      title="物流追踪"
-      width="40%"
-    >
-      <div v-if="tracking.length > 0" class="tracking-info">
-        <el-timeline>
-          <el-timeline-item
-            v-for="(activity, index) in tracking"
-            :key="index"
-            :timestamp="activity.time"
-            :type="index === 0 ? 'primary' : ''"
-          >
-            {{ activity.content }}
-          </el-timeline-item>
-        </el-timeline>
-      </div>
-      <div v-else class="empty-tracking">
-        <el-empty description="暂无物流信息" />
-      </div>
-    </el-dialog>
+
   </div>
 </template>
 
@@ -219,8 +192,6 @@ const order = ref({})
 const loading = ref(true)
 const error = ref(false)
 const showPaymentDialog = ref(false)
-const showTrackingDialog = ref(false)
-const tracking = ref([])
 
 // 获取订单详情
 const fetchOrderDetail = async () => {
@@ -444,65 +415,6 @@ const cancelOrder = () => {
     } catch (error) {
       console.error('取消订单失败:', error)
       ElMessage.error('取消订单失败，请稍后再试')
-    }
-  }).catch(() => {})
-}
-
-// 查看物流
-const trackShipment = () => {
-  if (!order.value.shipment || !order.value.shipment.trackingNumber) {
-    ElMessage.warning('暂无物流信息')
-    return
-  }
-  
-  // 模拟获取物流信息
-  // 实际项目中应该从API获取
-  tracking.value = [
-    { time: '2023-05-10 18:30:00', content: '已签收，签收人：本人' },
-    { time: '2023-05-10 11:20:00', content: '快件已到达【北京朝阳区公园路营业点】，派送员：王师傅，电话：18888888888' },
-    { time: '2023-05-09 18:00:00', content: '快件已发车，正在前往【北京市】' },
-    { time: '2023-05-08 23:00:00', content: '快件已到达【上海中转中心】' },
-    { time: '2023-05-08 21:00:00', content: '快件已从【上海徐汇区营业点】发出' },
-    { time: '2023-05-08 18:00:00', content: '【上海徐汇区营业点】已揽收，揽收员：李师傅，电话：17777777777' },
-    { time: '2023-05-08 14:22:00', content: '卖家已发货' }
-  ]
-  
-  showTrackingDialog.value = true
-}
-
-// 确认收货
-const confirmReceived = () => {
-  ElMessageBox.confirm('确认已收到商品吗?', '提示', {
-    confirmButtonText: '确认收货',
-    cancelButtonText: '取消',
-    type: 'info'
-  }).then(async () => {
-    try {
-      const response = await fetch(`${baseUrl.value}/api/order/${orderId}/received`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: userStore.getAuthHeaders()
-      })
-      
-      if (response.status === 401 || response.status === 403) {
-        ElMessage.error('登录已过期或权限不足，请重新登录')
-        userStore.clearUser()
-        setTimeout(() => {
-          router.push('/login')
-        }, 1500)
-        return
-      }
-      
-      const result = await response.json()
-      if (result.code === 200) {
-        ElMessage.success('确认收货成功')
-        fetchOrderDetail() // 刷新订单详情
-      } else {
-        ElMessage.error(result.message || '确认收货失败')
-      }
-    } catch (error) {
-      console.error('确认收货失败:', error)
-      ElMessage.error('确认收货失败，请稍后再试')
     }
   }).catch(() => {})
 }

@@ -1,7 +1,6 @@
 package com.zwj.backend.service.Impl;
 
 import com.mybatisflex.core.row.Db;
-import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.Book;
 import com.zwj.backend.entity.BookTag;
 import com.zwj.backend.entity.Result;
@@ -20,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.zwj.backend.entity.table.BookTableDef.BOOK;
-import static com.zwj.backend.entity.table.BookTagTableDef.BOOKTAG;
 import static com.zwj.backend.entity.table.TagTableDef.TAG;
 
 @Service
@@ -213,42 +211,6 @@ public class BookServiceImpl implements BookService {
         return Result.success(bookPage);
     }
 
-    // 标签查询图书
-    @Override
-    public Result<Page<Book>> searchBookByTagIds(int pageNum, int pageSize, List<Long> tids) {
-        List<Long> bookIdList = new ArrayList<>();
-        Set<Long> seen = new HashSet<>();
-        if (tids == null || tids.isEmpty()) {
-            return searchBooks(pageNum, pageSize, "", null, null, null, null ); // 空标签，返回全部图书分页
-        }
-
-        for (long tagId : tids) {
-            List<BookTag> bookTagList = bookTagMapper.selectListByQuery(QueryWrapper.create()
-                    .where(BOOKTAG.TID.eq(tagId)));
-
-            for (BookTag test1 : bookTagList) {
-                Long bookId = test1.getBid();
-                if (seen.add(bookId)) {
-                    bookIdList.add(bookId);
-                }
-            }
-        }
-
-        QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.and(BOOK.STATUS.eq(1));
-        if (!bookIdList.isEmpty()) {
-           queryWrapper.where(BOOK.ID.in(bookIdList));
-        }
-        queryWrapper.orderBy(BOOK.ID.asc());
-        Page<Book> bookPage = bookMapper.paginate(pageNum, pageSize, queryWrapper);
-
-        for (Book book : bookPage.getRecords()) {
-            book.setTag(getTagsByBookId(book.getId()));
-        }
-
-        return Result.success(bookPage);
-    }
-
     //添加图书
     @Override
     @Transactional
@@ -300,7 +262,6 @@ public class BookServiceImpl implements BookService {
         });
 
         if (affectedRows1.get() > 0 && newBook.getTag() != null) {
-            // 删除旧关联，使用正确的字段名
             bookTagMapper.deleteByQuery(
                     QueryWrapper.create().where("bid = ?", id));
 
@@ -318,18 +279,18 @@ public class BookServiceImpl implements BookService {
         for (Tag tag : book.getTag()) {
             Tag existingTag = null;
 
+            // 按名称查找现有标签
             if (tag.getName() != null && !tag.getName().isEmpty()) {
-                // 按名称查找现有标签
                 existingTag = tagMapper.selectOneByQuery(QueryWrapper.create()
                         .where(TAG.NAME.eq(tag.getName())));
             }
 
             if (existingTag == null) {
                 if (tag.getName() == null || tag.getName().isEmpty()) {
-                    continue; // 跳过无效的tag
+                    continue;
                 }
                 tagMapper.insert(tag);
-                existingTag = tag; // 使用插入后的对象
+                existingTag = tag;
             }
             Long tagId = (tagMapper.selectOneByQuery(QueryWrapper.create()
                     .where(TAG.NAME.eq(existingTag.getName())))).getId();
@@ -344,8 +305,7 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public void updateStock(Long id, Integer quantity) {
-        // 使用悲观锁 - 适合高并发场景
-        // 注意：需要数据库支持 FOR UPDATE
+        // 高并发场景使用悲观锁
         Book book = bookMapper.selectForUpdate(id);
         
         if (book == null) {

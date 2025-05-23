@@ -25,8 +25,8 @@
           <div class="filter-tags">
             <el-tag 
               :effect="selectedPriceRange === '' ? 'dark' : 'plain'" 
-              @click="selectPriceRange('')"
               class="filter-tag"
+              @click="selectPriceRange('')"
             >
               全部
             </el-tag>
@@ -34,8 +34,8 @@
               v-for="(range, index) in priceRanges" 
               :key="index"
               :effect="selectedPriceRange === range.value ? 'dark' : 'plain'" 
-              @click="selectPriceRange(range.value)"
               class="filter-tag"
+              @click="selectPriceRange(range.value)"
             >
               {{ range.label }}
             </el-tag>
@@ -56,8 +56,8 @@
         <el-button 
           size="small" 
           :icon="sortOrder === 'asc' ? ArrowUp : ArrowDown" 
-          @click="toggleSortOrder"
           :disabled="sortBy === 'default'"
+          @click="toggleSortOrder"
         >
           {{ sortOrder === 'asc' ? '升序' : '降序' }}
         </el-button>
@@ -99,7 +99,7 @@
             <div class="book-info">
               <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
               <p class="book-author">{{ book.writer }}</p>
-              <div class="book-tags" v-if="book.tag && book.tag.length > 0">
+              <div v-if="book.tag && book.tag.length > 0" class="book-tags">
                 <el-tag 
                   v-for="(tag, index) in book.tag.slice(0, 2)" 
                   :key="index"
@@ -119,8 +119,8 @@
                   size="default"
                   :icon="ShoppingCart"
                   circle 
-                  @click.stop="addToCart(book.id)"
                   :disabled="book.stock <= 0"
+                  @click.stop="addToCart(book.id)"
                 />
               </div>
             </div>
@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, ShoppingCart, Picture, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
@@ -183,26 +183,21 @@ const priceRanges = ref([
 const fetchBooks = async () => {
   loading.value = true
   try {
-    // 构建URL和参数
     let url = `${baseUrl.value}/api/book/search`
     const params = new URLSearchParams()
     
-    // 添加分页参数
     params.append('pageNum', currentPage.value)
     params.append('pageSize', pageSize.value)
     
-    // 添加搜索关键词
     if (searchQuery.value) {
       params.append('keyword', searchQuery.value)
     }
     
-    // 添加排序参数
     if (sortBy.value !== 'default') {
       params.append('sortBy', sortBy.value)
       params.append('sortOrder', sortOrder.value)
     }
     
-    // 添加价格区间参数
     if (selectedPriceRange.value) {
       const [min, max] = selectedPriceRange.value.split('-').map(Number)
       if (!isNaN(min)) {
@@ -213,7 +208,6 @@ const fetchBooks = async () => {
       }
     }
     
-    // 完整URL
     url = `${url}?${params.toString()}`
     
     const response = await fetch(url, {
@@ -234,7 +228,6 @@ const fetchBooks = async () => {
       books.value = data.data.records || []
       totalBooks.value = data.data.totalRow || 0
       
-      // 使用后端返回的分页信息
       if (data.data.pageNumber) {
         currentPage.value = parseInt(data.data.pageNumber) || currentPage.value
       }
@@ -281,13 +274,6 @@ const toggleSortOrder = () => {
   fetchBooks()
 }
 
-// 选择分类
-const selectCategory = (categoryId) => {
-  selectedCategory.value = categoryId
-  currentPage.value = 1
-  fetchBooks()
-}
-
 // 选择价格区间
 const selectPriceRange = (range) => {
   selectedPriceRange.value = range
@@ -307,7 +293,6 @@ const handleCurrentChange = (page) => {
   fetchBooks()
 }
 
-// 导航到详情页
 const navigateToDetail = (bookId) => {
   router.push(`/books/${bookId}`)
 }
@@ -348,13 +333,11 @@ const addToCart = async (bookId) => {
 
 // 生命周期钩子
 onMounted(() => {
-  // 从URL获取搜索关键词
   const keywordFromURL = route.query.keyword
   if (keywordFromURL) {
     searchQuery.value = keywordFromURL
   }
-  
-  // 获取图书列表
+
   fetchBooks()
 })
 </script>

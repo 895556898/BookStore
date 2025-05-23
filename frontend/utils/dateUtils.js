@@ -1,15 +1,8 @@
-/**
- * 格式化日期
- * @param {string|Date} date 日期对象或日期字符串
- * @param {string} format 格式化模式，例如 YYYY-MM-DD HH:mm:ss
- * @returns {string} 格式化后的日期字符串
- */
 export const formatDate = (date, format = 'YYYY-MM-DD') => {
   if (!date) return '';
   
   let d = date;
   if (typeof date === 'string') {
-    // 尝试解析字符串为Date对象
     d = new Date(date);
   }
   
@@ -46,11 +39,6 @@ export const formatDate = (date, format = 'YYYY-MM-DD') => {
     .replace(/SSS/g, pad(milliseconds, 3));
 };
 
-/**
- * 计算相对时间，如"几分钟前"，"几小时前"等
- * @param {string|Date} date 日期对象或日期字符串
- * @returns {string} 格式化后的相对时间字符串
- */
 export const timeAgo = (date) => {
   if (!date) return '';
   
@@ -97,12 +85,6 @@ export const timeAgo = (date) => {
   }
 };
 
-/**
- * 比较两个日期的大小
- * @param {string|Date} dateA 日期A
- * @param {string|Date} dateB 日期B
- * @returns {number} 如果dateA > dateB返回1，如果dateA < dateB返回-1，如果相等返回0
- */
 export const compareDate = (dateA, dateB) => {
   const a = new Date(dateA);
   const b = new Date(dateB);

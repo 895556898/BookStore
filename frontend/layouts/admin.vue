@@ -18,10 +18,6 @@
             <el-icon><List /></el-icon>
             <span>订单管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/stats">
-            <el-icon><Histogram /></el-icon>
-            <span>销售统计</span>
-          </el-menu-item>
           <el-menu-item index="/">
             <el-icon><Back /></el-icon>
             <span>返回商城</span>
@@ -63,7 +59,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Back, Document, List, Histogram, ArrowDown } from '@element-plus/icons-vue'
+import { Back, Document, List, ArrowDown } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -76,21 +72,17 @@ const pageTitle = computed(() => {
       return '图书管理'
     case '/admin/orders':
       return '订单管理'
-    case '/admin/stats':
-      return '销售统计'
     default:
       return '管理后台'
   }
 })
 
 onMounted(() => {
-  // 检查用户是否已登录及是否为管理员
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
     const user = JSON.parse(userInfo)
     username.value = user.username
     
-    // 如果不是管理员，重定向到首页
     if (user.role !== 'ADMIN') {
       ElMessage.error('无权访问管理后台')
       router.push('/')
@@ -109,7 +101,7 @@ const logout = async () => {
     })
     const result = await response.json()
     
-    if (result.code === 1003) { // 假设1003是登出成功状态码
+    if (result.code === 1003) {
       localStorage.removeItem('userInfo')
       ElMessage.success('退出成功')
       router.push('/login')
@@ -145,11 +137,6 @@ const logout = async () => {
   height: calc(100vh - 60px);
 }
 
-.el-aside {
-  background-color: #263445;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
-}
-
 .admin-header {
   display: flex;
   justify-content: space-between;
@@ -163,22 +150,4 @@ const logout = async () => {
   cursor: pointer;
 }
 
-.el-header {
-  background-color: #fff;
-  border-bottom: 1px solid #eee;
-  line-height: 60px;
-  padding: 0;
-}
-
-.el-main {
-  padding: 20px;
-  background-color: #f5f7fa;
-}
-
-.el-footer {
-  padding: 20px;
-  text-align: center;
-  color: #666;
-  background-color: #f5f5f5;
-}
-</style> 
+</style>

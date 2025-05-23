@@ -1,6 +1,5 @@
 package com.zwj.backend.controller;
 
-import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.User;
 import com.zwj.backend.service.Impl.UserService;
@@ -71,7 +70,7 @@ public class LoginController {
                 user.setPassword(null);
                 return Result.success(user);
             } else {
-                return Result.error(StatusCode.LOGIN_FAIL.getCode(), StatusCode.LOGIN_FAIL.getMsg());
+                return Result.error(20001, "登录失败，用户名或密码错误");
             }
         } catch (Exception e) {
             return Result.error(400, "登录失败");
@@ -82,7 +81,7 @@ public class LoginController {
     public Result<Void> logout(HttpServletRequest request) {
         HttpSession session = request.getSession();
         if (session.getAttribute("SPRING_SECURITY_CONTEXT") == null) {
-            return Result.error(StatusCode.LOGOUT_FAIL.getCode(), StatusCode.LOGOUT_FAIL.getMsg());
+            return Result.error(20004, "未登录");
         }
         
         // 从session中获取用户名

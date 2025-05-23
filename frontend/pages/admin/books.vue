@@ -2,7 +2,7 @@
   <div class="admin-books-container">
     <div class="page-header">
       <h2>图书管理</h2>
-      <el-button type="primary" @click="openAddDialog" icon="Plus">添加图书</el-button>
+      <el-button type="primary" icon="Plus" @click="openAddDialog">添加图书</el-button>
     </div>
 
     <div class="search-bar">
@@ -16,7 +16,7 @@
     </div>
 
     <!-- 图书列表 -->
-    <el-table :data="filteredBooks" style="width: 100%" v-loading="loading" border stripe @sort-change="handleSortChange">
+    <el-table v-loading="loading" :data="filteredBooks" style="width: 100%" border stripe @sort-change="handleSortChange">
       <el-table-column prop="id" label="ID" min-width="5" sortable="custom" />
       <el-table-column label="封面" min-width="8">
         <template #default="scope">
@@ -73,8 +73,8 @@
           <el-tag
             :type="scope.row.status ? 'success' : 'danger'"
             effect="dark"
-            @click="handleToggleStatus(scope.row)"
             style="cursor: pointer;"
+            @click="handleToggleStatus(scope.row)"
           >
             {{ scope.row.status ? '在售' : '下架' }}
           </el-tag>
@@ -123,21 +123,21 @@
             </el-image>
           </div>
           <input
-            type="file"
             ref="fileInputRef"
+            type="file"
             accept="image/*"
             style="display: none"
             @change="handleFileChange"
-          />
+          >
           <el-button type="primary" :loading="uploadLoading" @click="triggerFileInput">
             {{ uploadLoading ? '上传中...' : '上传封面' }}
           </el-button>
         </div>
         
         <el-form 
+          ref="bookFormRef" 
           :model="bookForm" 
           :rules="bookRules" 
-          ref="bookFormRef" 
           label-width="100px"
           class="book-form"
         >
@@ -167,8 +167,8 @@
                   :key="tag.name"
                   closable
                   :disable-transitions="false"
-                  @close="handleTagClose(tag)"
                   class="tag-item"
+                  @close="handleTagClose(tag)"
                 >
                   {{ tag.name }}
                 </el-tag>
@@ -194,7 +194,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitBookForm" :loading="submitLoading">确认</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="submitBookForm">确认</el-button>
         </span>
       </template>
     </el-dialog>
@@ -204,8 +204,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Edit, Delete, User, Plus, Picture } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Search, Picture } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 // 添加路由器
@@ -292,8 +292,7 @@ const triggerFileInput = () => {
 const handleFileChange = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-  
-  // 验证文件
+
   const isImage = file.type.startsWith('image/')
   const isLt2M = file.size / 1024 / 1024 < 2
 
@@ -309,14 +308,11 @@ const handleFileChange = async (event) => {
   uploadLoading.value = true
   
   try {
-    // 创建FormData对象
     const formData = new FormData()
     formData.append('files', file)
-    
-    // 获取token
+
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-    
-    // 设置请求头
+
     const headers = {
       'Accept': 'application/json'
     }
@@ -367,7 +363,6 @@ const handleFileChange = async (event) => {
     ElMessage.error(errorMessage)
   } finally {
     uploadLoading.value = false
-    // 重置文件输入控件
     fileInputRef.value.value = ''
   }
 }
@@ -392,7 +387,6 @@ const handleTagConfirm = () => {
       : t === tagInputValue.value)
     
     if (!tagExists) {
-      // 创建一个Tag对象而不是简单的字符串
       bookForm.tag.push({ name: tagInputValue.value })
     }
   }
@@ -424,29 +418,23 @@ const filteredBooks = computed(() => {
 const fetchBooks = async () => {
   loading.value = true
   try {
-    // 获取存储的token或session
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-    
-    // 构建URL和参数
+
     let url = `${baseUrl.value}/api/book/admin/search`
     const params = new URLSearchParams()
-    
-    // 添加分页参数 - 注意这里不要减1，与后端对齐
+
     params.append('pageNum', currentPage.value)
     params.append('pageSize', pageSize.value)
-    
-    // 添加搜索关键词
+
     if (searchQuery.value) {
       params.append('keyword', searchQuery.value)
     }
-    
-    // 添加排序参数
+
     if (sortBy.value) {
       params.append('sortBy', sortBy.value)
       params.append('sortOrder', sortOrder.value)
     }
-    
-    // 完整URL
+
     url = `${url}?${params.toString()}`
     
     console.log('请求URL:', url)
@@ -455,8 +443,7 @@ const fetchBooks = async () => {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     }
-    
-    // 如果有token，添加到请求头
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -466,8 +453,7 @@ const fetchBooks = async () => {
       headers,
       credentials: 'include'
     })
-    
-    // 检查是否认证失败
+
     if (response.status === 401 || response.status === 403) {
       ElMessage.error('登录已过期或权限不足，请重新登录')
       // 可选：重定向到登录页
@@ -494,9 +480,8 @@ const fetchBooks = async () => {
     if (data && data.code === 200) {
       books.value = data.data.records || []
       totalBooks.value = data.data.totalRow || 0
-      
-      // 使用后端返回的分页信息
-      // 仅当返回的分页信息存在且有效时才更新本地值
+
+      // 返回的分页信息存在且有效时才更新本地值
       if (data.data.pageNumber) {
         currentPage.value = parseInt(data.data.pageNumber) || currentPage.value
       }
@@ -564,7 +549,6 @@ const submitBookForm = async () => {
     if (valid) {
       submitLoading.value = true
       try {
-        // 获取存储的token
         const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
         
         const url = isEditing.value 
@@ -576,25 +560,19 @@ const submitBookForm = async () => {
         const headers = {
           'Content-Type': 'application/json'
         }
-        
-        // 如果有token，添加到请求头
+
         if (token) {
           headers['Authorization'] = `Bearer ${token}`
         }
-        
-        // 处理要提交的数据
+
         const formData = { ...bookForm }
         
-        // 确保标签为空数组而不是undefined或null
         formData.tag = formData.tag || []
         
-        // 确保每个标签都是对象格式
         formData.tag = formData.tag.map(tag => {
-          // 如果已经是对象且有name属性，直接返回
           if (typeof tag === 'object' && tag.name) {
             return tag
           }
-          // 如果是字符串，转换为对象
           return { name: tag }
         })
         
@@ -607,11 +585,9 @@ const submitBookForm = async () => {
           credentials: 'include'
         })
         
-        // 检查是否认证失败
         if (response.status === 401 || response.status === 403) {
           ElMessage.error('登录已过期或权限不足，请重新登录')
           dialogVisible.value = false
-          // 可选：重定向到登录页
           setTimeout(() => {
             router.push('/login')
           }, 1500)
@@ -625,7 +601,6 @@ const submitBookForm = async () => {
         let parseError = false
         
         try {
-          // 尝试解析响应
           data = responseText ? JSON.parse(responseText) : {}
           console.log('响应数据:', data)
         } catch (e) {
@@ -633,19 +608,15 @@ const submitBookForm = async () => {
           parseError = true
         }
         
-        // 响应状态码在200-299之间视为成功
         const isSuccessStatus = response.status >= 200 && response.status < 300
         
-        // 如果状态码成功或解析错误但响应状态码成功，都视为操作成功
         if ((data && data.code === 200) || (parseError && isSuccessStatus) || (response.status === 400 && responseText.includes('tag'))) {
           ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
           dialogVisible.value = false
-          // 延迟一会儿再刷新，确保后端处理完成
           setTimeout(() => {
             fetchBooks()
           }, 500)
         } else {
-          // 即使后端返回错误，但如果是标签相关的问题，也视为操作成功
           if (responseText.includes('Tag') || responseText.includes('tag')) {
             ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
             dialogVisible.value = false
@@ -659,7 +630,6 @@ const submitBookForm = async () => {
       } catch (error) {
         console.error(isEditing.value ? '更新图书错误:' : '添加图书错误:', error)
         
-        // 即使出错，但如果是标签相关的问题，也视为操作成功
         if (String(error).includes('Tag') || String(error).includes('tag')) {
           ElMessage.success(isEditing.value ? '更新成功' : '添加成功')
           dialogVisible.value = false
@@ -720,14 +690,12 @@ const handleSortChange = ({ prop, order }) => {
 // 处理状态切换
 const handleToggleStatus = async (row) => {
   try {
-    // 获取存储的token
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
     
     const headers = {
       'Content-Type': 'application/json'
     }
     
-    // 如果有token，添加到请求头
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -738,10 +706,8 @@ const handleToggleStatus = async (row) => {
       credentials: 'include'
     })
     
-    // 检查是否认证失败
     if (response.status === 401 || response.status === 403) {
       ElMessage.error('登录已过期或权限不足，请重新登录')
-      // 可选：重定向到登录页
       setTimeout(() => {
         router.push('/login')
       }, 1500)
@@ -751,7 +717,6 @@ const handleToggleStatus = async (row) => {
     const data = await response.json()
     if (data && data.code === 200) {
       ElMessage.success(row.status ? '图书已下架' : '图书已上架')
-      // 不刷新整个列表，只更新当前行数据
       row.status = !row.status
     } else {
       ElMessage.error(data?.message || '状态切换失败')

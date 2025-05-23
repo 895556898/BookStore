@@ -169,29 +169,6 @@
         </span>
       </template>
     </el-dialog>
-    
-    <!-- 物流追踪对话框 -->
-    <el-dialog
-      v-model="showTrackingDialog"
-      title="物流追踪"
-      width="40%"
-    >
-      <div v-if="tracking.length > 0" class="tracking-info">
-        <el-timeline>
-          <el-timeline-item
-            v-for="(activity, index) in tracking"
-            :key="index"
-            :timestamp="activity.time"
-            :type="index === 0 ? 'primary' : ''"
-          >
-            {{ activity.content }}
-          </el-timeline-item>
-        </el-timeline>
-      </div>
-      <div v-else class="empty-tracking">
-        <el-empty description="暂无物流信息" />
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -214,19 +191,14 @@ const order = ref({})
 const loading = ref(true)
 const error = ref(false)
 const showPaymentDialog = ref(false)
-const showTrackingDialog = ref(false)
-const tracking = ref([])
 
 // 获取订单详情
 const fetchOrderDetail = async () => {
   loading.value = true;
   error.value = false;
 
-  // 检查用户登录状态
   if (!userStore.isLoggedIn) {
-    // 尝试初始化用户状态
     userStore.initUserFromStorage();
-    // 检查会话状态
     const isLoggedIn = await userStore.checkSession();
     if (!isLoggedIn) {
       ElMessage.warning('请先登录');
@@ -235,12 +207,10 @@ const fetchOrderDetail = async () => {
     }
   }
 
-  // 检查用户是否是管理员
   isFromAdmin.value = userStore.getUserRole.toLowerCase() === 'admin' && route.query.fromAdmin === 'true';
 
   try {
-    // 根据用户角色使用不同的API接口
-    const apiUrl = isFromAdmin.value 
+    const apiUrl = isFromAdmin.value
       ? `${baseUrl.value}/api/order/admin/${orderId}` 
       : `${baseUrl.value}/api/order/${orderId}`;
 
@@ -389,7 +359,7 @@ const confirmPayment = async () => {
     if (result.code === 200) {
       ElMessage.success('支付成功')
       showPaymentDialog.value = false
-      fetchOrderDetail() // 刷新订单详情
+      fetchOrderDetail()
     } else {
       ElMessage.error(result.message || '支付失败')
     }
@@ -492,7 +462,7 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  font-size: 16px; /* 增加基础字体大小 */
+  font-size: 16px;
 }
 
 .page-header {
@@ -503,7 +473,7 @@ onMounted(() => {
 }
 
 .page-header h1 {
-  font-size: 29px; /* 增加标题字体大小 */
+  font-size: 29px;
   color: #333;
   margin: 0;
 }
@@ -535,8 +505,6 @@ onMounted(() => {
   margin: 30px 0;
 }
 
-/* 步骤条字体调整 */
-
 .order-actions {
   margin-top: 20px;
   display: flex;
@@ -555,7 +523,7 @@ onMounted(() => {
 .section-title {
   padding: 15px 20px;
   margin: 0;
-  font-size: 20px; /* 增加节标题字体大小 */
+  font-size: 20px;
   border-bottom: 1px solid #eee;
   background-color: #f5f7fa;
 }
@@ -575,8 +543,6 @@ onMounted(() => {
   margin: 10px 0;
   font-size: 16px;
 }
-
-/* 表格内容字体调整 */
 
 :deep(.el-table th) {
   font-size: 16px;
@@ -669,12 +635,4 @@ onMounted(() => {
   border: 1px solid #eee;
 }
 
-.tracking-info {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-/* 时间线内容字体调整 */
-
-/* 按钮字体大小调整 */
 </style>

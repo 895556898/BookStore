@@ -2,7 +2,6 @@ package com.zwj.backend.entity;
 
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.Table;
-import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import lombok.Builder;
@@ -16,7 +15,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-//@Entity
 @Data
 @Builder
 @Table(value = "book")

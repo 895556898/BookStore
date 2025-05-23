@@ -68,7 +68,7 @@
             </span>
           </div>
           
-          <div class="book-tags" v-if="book.tags && book.tags.length > 0">
+          <div v-if="book.tags && book.tags.length > 0" class="book-tags">
             <el-tag v-for="tag in book.tags" :key="tag.id" :type="getTagType(tag.name)" effect="plain" class="tag">
               {{ tag.name }}
             </el-tag>
@@ -78,7 +78,7 @@
             <span :class="['stock-status', book.stock > 0 ? 'in-stock' : 'out-stock']">
               {{ book.stock > 0 ? '有货' : '缺货' }}
             </span>
-            <span class="stock-count" v-if="book.stock > 0">库存: {{ book.stock }}</span>
+            <span v-if="book.stock > 0" class="stock-count">库存: {{ book.stock }}</span>
             <span class="sales-count">销量: {{ book.sales || 0 }}</span>
             <span :class="['status-tag', book.status ? 'on-sale' : 'off-sale']">
               {{ book.status ? '在售' : '已下架' }}
@@ -127,13 +127,13 @@
       <div class="related-books">
         <h2>相关推荐</h2>
         <el-row :gutter="20">
-          <el-col :span="4" v-for="(relatedBook, index) in relatedBooks" :key="index">
+          <el-col v-for="(relatedBook, index) in relatedBooks" :key="index" :span="4">
             <el-card
               class="related-book-card"
               shadow="hover"
               @click="goToBookDetail(relatedBook.id)"
             >
-              <img :src="relatedBook.cover || '/default-book.jpg'" class="related-book-cover" />
+              <img :src="relatedBook.cover || '/default-book.jpg'" class="related-book-cover" >
               <div class="related-book-info">
                 <h3 class="related-book-title">{{ relatedBook.title }}</h3>
                 <p class="related-book-price">￥{{ relatedBook.price ? relatedBook.price.toFixed(2) : '0.00' }}</p>
@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ShoppingCart, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -174,12 +174,10 @@ const getAuthHeaders = () => {
 
 // 检查登录状态
 const checkLoginStatus = () => {
-  // 初始化用户状态 - 从localStorage恢复
   if (!userStore.isLoggedIn) {
     userStore.initUserFromStorage()
   }
 
-  // 检查用户是否已登录
   isLoggedIn.value = userStore.isLoggedIn && userStore.user
   return isLoggedIn.value
 }
@@ -195,10 +193,8 @@ const handleSearch = () => {
 const fetchBookDetail = async () => {
   loading.value = true
   try {
-    // 检查登录状态
     const loggedIn = checkLoginStatus()
     
-    // 如果本地有用户状态但没有检查过会话状态，先验证会话
     if (loggedIn && !userStore.sessionChecked) {
       await userStore.checkSession()
     }
@@ -210,7 +206,6 @@ const fetchBookDetail = async () => {
     })
     
     if (!response.ok) {
-      // 检查是否未授权
       if (response.status === 401 || response.status === 403) {
         ElMessage.warning('请先登录后查看')
         router.push('/login')
@@ -223,7 +218,6 @@ const fetchBookDetail = async () => {
     
     if (result.code === 200) {
       book.value = result.data
-      // 设置默认数量不超过库存
       if (book.value.stock && book.value.stock > 0) {
         quantity.value = Math.min(1, book.value.stock)
       }
@@ -243,7 +237,6 @@ const fetchBookDetail = async () => {
 // 获取相关推荐图书
 const fetchRelatedBooks = async () => {
   try {
-    // 可以根据当前图书的标签推荐相关图书
     let tagIds = []
     if (book.value.tags && book.value.tags.length > 0) {
       tagIds = book.value.tags.map(tag => tag.id)
@@ -264,8 +257,7 @@ const fetchRelatedBooks = async () => {
       const result = await response.json()
       
       if (result.code === 200) {
-        // 过滤掉当前图书
-        relatedBooks.value = result.data.records.filter(item => item.id != bookId)
+        relatedBooks.value = result.data.records.filter(item => item.id !== bookId)
       }
     } else {
       // 如果没有标签，则获取随机图书
@@ -283,8 +275,7 @@ const fetchRelatedBooks = async () => {
       const result = await response.json()
       
       if (result.code === 200) {
-        // 过滤掉当前图书
-        relatedBooks.value = result.data.records.filter(item => item.id != bookId)
+        relatedBooks.value = result.data.records.filter(item => item.id !== bookId)
       }
     }
   } catch (err) {

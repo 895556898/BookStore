@@ -233,9 +233,7 @@ const getPaymentMethodText = (method) => {
 // 获取订单列表
 const fetchOrders = async () => {
   if (!userStore.isLoggedIn) {
-    // 尝试初始化用户状态
     userStore.initUserFromStorage()
-    // 检查会话状态
     const isLoggedIn = await userStore.checkSession()
     if (!isLoggedIn) {
       loading.value = false
@@ -443,7 +441,7 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  font-size: 16px; /* 增加基础字体大小 */
+  font-size: 16px;
 }
 
 .page-header {
@@ -451,7 +449,7 @@ onMounted(() => {
 }
 
 .page-header h1 {
-  font-size: 29px; /* 增加标题字体大小 */
+  font-size: 29px;
   color: #333;
   margin: 0;
   padding-bottom: 10px;
@@ -471,10 +469,8 @@ onMounted(() => {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* 表格内容字体调整 */
-
 :deep(.el-table th) {
-  font-size: 16px; /* 表头字体调整 */
+  font-size: 16px;
 }
 
 .book-tags {
@@ -484,7 +480,7 @@ onMounted(() => {
 }
 
 .tag-item {
-  font-size: 14px; /* 标签字体大小 */
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -495,7 +491,7 @@ onMounted(() => {
 .price {
   color: #ff6700;
   font-weight: bold;
-  font-size: 16px; /* 价格字体大小 */
+  font-size: 16px;
 }
 
 .action-buttons {
@@ -504,15 +500,11 @@ onMounted(() => {
   gap: 5px;
 }
 
-/* 按钮字体大小调整 */
-
 .pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
-
-/* 分页组件字体调整 */
 
 .payment-dialog-content {
   text-align: center;
@@ -522,7 +514,7 @@ onMounted(() => {
 .total-price {
   color: #ff6700;
   font-weight: bold;
-  font-size: 22px; /* 增加总价字体大小 */
+  font-size: 22px;
 }
 
 .payment-qr-code {
@@ -535,7 +527,5 @@ onMounted(() => {
   height: 200px;
   border: 1px solid #eee;
 }
-
-/* 表单控件字体大小调整 */
 
 </style>

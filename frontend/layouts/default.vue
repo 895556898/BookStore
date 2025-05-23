@@ -20,7 +20,6 @@
               <template v-if="userStore.getUserRole === 'admin'">
                 <el-menu-item index="/admin/books">图书管理</el-menu-item>
                 <el-menu-item index="/admin/orders">订单管理</el-menu-item>
-                <!-- <el-menu-item index="/admin/stats">销售统计</el-menu-item> -->
               </template>
             </el-menu>
           </div>
@@ -72,7 +71,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, User, ShoppingBag, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, ShoppingBag, SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -87,7 +86,7 @@ const handleLogout = async () => {
   try {
     await userStore.logout()
     ElMessage.success('退出成功')
-    router.push('/login')
+    await router.push('/login')
   } catch (error) {
     console.error('退出失败:', error)
     ElMessage.error('退出失败')
