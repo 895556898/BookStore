@@ -138,28 +138,6 @@ const handleLogout = async () => {
   font-size: 14px;
 }
 
-.el-header {
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 0;
-  height: auto !important;
-}
-
-.el-main {
-  padding: 20px;
-  flex-grow: 1;
-  background-color: #f5f7fa;
-}
-
-.el-footer {
-  background-color: #f5f5f5;
-  padding: 20px;
-  text-align: center;
-}
-
 .footer-container {
   color: #666;
 }

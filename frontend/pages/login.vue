@@ -89,7 +89,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入用户名'))
         } else {
@@ -102,7 +102,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入密码'))
         } else {
@@ -172,7 +172,7 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f2f5;  // 浅灰色背景
+  background-color: #f0f2f5;
 
   .login-box {
     width: 450px;
@@ -204,18 +204,6 @@ const handleLogin = async () => {
   }
 }
 
-// 调整级联选择器样式
-:deep(.el-cascader) {
-  width: 100%;
-
-  .el-input__inner {
-    height: 40px;
-  }
-
-  .el-icon-arrow-down {
-    display: none;  // 隐藏下拉箭头
-  }
-}
 .user-type-group {
   width: 100%;
 
