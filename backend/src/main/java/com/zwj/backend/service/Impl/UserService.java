@@ -1,7 +1,6 @@
 package com.zwj.backend.service.Impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
-import com.zwj.backend.common.StatusCode;
 import com.zwj.backend.entity.Result;
 import com.zwj.backend.entity.User;
 import jakarta.annotation.Resource;
@@ -19,7 +18,6 @@ import java.util.List;
 
 @Service
 public class UserService implements UserDetailsService {
-//    UserMapper userMapper = MybatisFlexBootstrap.getInstance().getMapper(UserMapper.class);
 
     @Resource
     private UserMapper userMapper;
@@ -67,14 +65,6 @@ public class UserService implements UserDetailsService {
 
     }
 
-
-    public StatusCode getUserByUsername(String username) {
-        User user = userMapper.selectOneByQuery(new QueryWrapper().eq("username",username));
-        if (user == null) {
-            return StatusCode.USER_NOT_EXIST;
-        }
-        return StatusCode.LOGIN_SUCCESS;
-    }
 
     public User getUserEntityByUsername(String username) {
         return userMapper.selectOneByQuery(new QueryWrapper().eq("username", username));

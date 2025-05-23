@@ -23,10 +23,4 @@ public interface CartService {
     
     // 获取购物车总价
     Result<Double> getCartTotal();
-    
-    // 通过ID查找购物车项
-    CartItem findCartItemById(Long cartItemId);
-    
-    // 通过ID列表获取购物车项列表
-    List<CartItem> getCartItemsByIds(List<Long> cartItemIds);
 } 

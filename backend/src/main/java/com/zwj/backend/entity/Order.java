@@ -14,7 +14,6 @@ import java.util.List;
 @Table("orders")
 public class Order {                     //订单
     @Id
-//    @Id(keyType = KeyType.Auto)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;

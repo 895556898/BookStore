@@ -7,7 +7,6 @@ import com.zwj.backend.entity.*;
 import com.zwj.backend.entity.dto.OrderRequest;
 import com.zwj.backend.mapper.*;
 import com.zwj.backend.service.BookService;
-import com.zwj.backend.service.CartService;
 import com.zwj.backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -40,10 +39,7 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired
     private BookMapper bookMapper;
-    
-    @Autowired
-    private CartService cartService;
-    
+
     @Autowired
     private BookService bookService;
 
@@ -151,21 +147,21 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUserId(currentUser.getId());
         order.setTotalAmount(totalAmount);
-        order.setStatus("PENDING"); // 待付款
-        order.setRemark(request.getRemark()); // 设置订单备注
+        order.setStatus("PENDING");
+        order.setRemark(request.getRemark());
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
-        order.setPaymentMethod(request.getPaymentMethod()); // 设置支付方式
+        order.setPaymentMethod(request.getPaymentMethod());
 
         orderMapper.insertOrder(order);
 
         // 创建订单项
         List<OrderItem> orderItemsList = new ArrayList<>();
-        List<Long> bookIds = new ArrayList<>(); // 用于记录处理的图书ID，用于后续清空购物车
+        List<Long> bookIds = new ArrayList<>();
 
         for (OrderRequest.OrderItemRequest item : orderItems) {
             Book book = bookMapper.selectOneById(item.getBookId());
-            bookIds.add(item.getBookId()); // 记录图书ID
+            bookIds.add(item.getBookId());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(order.getId());
@@ -176,7 +172,6 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setUpdateTime(LocalDateTime.now());
             orderItemMapper.insertOrderItem(orderItem);
 
-            // 减少库存
             bookService.updateStock(book.getId(), item.getQuantity());
 
             orderItem.setBook(book);
@@ -186,7 +181,6 @@ public class OrderServiceImpl implements OrderService {
         // 清空购物车中已下单的商品
         if (!bookIds.isEmpty()) {
             try {
-                // 从购物车中删除这些图书
                 cartItemMapper.deleteByQuery(
                     QueryWrapper.create()
                         .where("user_id = ?", currentUser.getId())
@@ -194,7 +188,6 @@ public class OrderServiceImpl implements OrderService {
                 );
             } catch (Exception e) {
                 System.err.println("清空购物车失败: " + e.getMessage());
-                // 不影响主流程，即使清空购物车失败，订单创建仍然成功
             }
         }
 
@@ -237,16 +230,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public CartItem findCartItemById(List<CartItem> cartItems, Long cartItemId) {
-        for (CartItem cartItem : cartItems) {
-            if (cartItem.getId().equals(cartItemId)) {
-                return cartItem;
-            }
-        }
-        return null;
-    }
-
-    @Override
     @Transactional
     public Result<Order> deleteOrder(Long id) {
         User currentUser = getCurrentUser();
@@ -264,7 +247,6 @@ public class OrderServiceImpl implements OrderService {
             return Result.error(404, "订单不存在");
         }
 
-        // 只能删除已取消的订单
         if (!"CANCELLED".equals(order.getStatus())) {
             return Result.error(400, "只能删除已取消的订单");
         }
@@ -287,37 +269,6 @@ public class OrderServiceImpl implements OrderService {
         
         return Result.success(order);
     }
-
-//    @Override
-//    public Result<List<Order>> getAllOrders() {
-//        // 检查是否为管理员
-//        User currentUser = getCurrentUser();
-//        if (currentUser == null || !"admin".equals(currentUser.getRole())) {
-//            return Result.error(403, "权限不足");
-//        }
-//
-//        List<Order> orders = QueryChain.of(orderMapper)
-//                .orderBy(ORDER.CREATE_TIME.desc())
-//                .list();
-//
-//        // 加载订单项和用户信息
-//        for (Order order : orders) {
-//            List<OrderItem> orderItems = QueryChain.of(orderItemMapper)
-//                    .where(ORDER_ITEM.ORDER_ID.eq(order.getId()))
-//                    .list();
-//
-//            // 加载图书信息
-//            for (OrderItem orderItem : orderItems) {
-//                Book book = bookMapper.selectOneById(orderItem.getBookId());
-//                book.setTag(getTagsByBookId(book.getId()));
-//                orderItem.setBook(book);
-//            }
-//
-//            order.setOrderItems(orderItems);
-//        }
-//
-//        return Result.success(orders);
-//    }
 
     @Override
     public Result<Page<Order>> searchAllOrders(String keyword, int page, int pageSize, LocalDateTime start, LocalDateTime end) {
@@ -347,7 +298,6 @@ public class OrderServiceImpl implements OrderService {
 
         queryWrapper.orderBy(ORDER.CREATE_TIME.desc());
 
-        // 分页查询
         Page<Order> orderPage = orderMapper.paginate(page, pageSize, queryWrapper);
 
         // 加载订单项
@@ -617,9 +567,8 @@ public class OrderServiceImpl implements OrderService {
         order.setUser(user);
     }
 
-    // 实现地区代码到名称的转换方法
+    //模拟实现
     private String getRegionNameByCode(String code) {
-        // 这里是一个简化的实现，真实项目中应该从数据库或配置文件获取
         // 北京市
         if ("110000".equals(code)) return "北京市";
         if ("110100".equals(code)) return "北京市";

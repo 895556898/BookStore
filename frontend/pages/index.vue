@@ -14,40 +14,17 @@ interface Book {
   price: number;
   sales?: number;
   stock?: number;
-  tag?: any[];
+  tag?: unknown[];
 }
 
 const searchKey = ref('')
-const activeIndex = ref('1')
-const bookList = ref<Book[]>([])
 const recommendBooks = ref<Book[]>([])
 const newBooks = ref<Book[]>([])
 const topBooks = ref<Book[]>([]) // 销量前三的书籍
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(8)
-const total = ref(0)
 const baseUrl = ref('http://localhost:8080')
 
 // 初始化路由
 const router = useRouter()
-
-// 获取图书列表
-const fetchBooks = async () => {
-  loading.value = true
-  try {
-    const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=${currentPage.value}&pageSize=${pageSize.value}&keyword=${searchKey.value}`)
-    const data = await response.json()
-    if (data.code === 200) {
-      bookList.value = data.data.records
-      total.value = data.data.total
-    }
-  } catch (error) {
-    console.error('获取图书列表失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
 
 // 获取销量前三的书籍用于轮播图
 const fetchTopBooks = async () => {
@@ -65,20 +42,16 @@ const fetchTopBooks = async () => {
 // 获取随机推荐图书
 const fetchRecommendBooks = async () => {
   try {
-    // 获取随机推荐的4本书
     const response = await fetch(`${baseUrl.value}/api/book/search?pageNum=1&pageSize=20`)
     const data = await response.json()
     if (data.code === 200 && data.data.records.length > 0) {
-      // 从结果中随机选择4本书
       const allBooks = data.data.records
       const selectedBooks = []
       const totalBooks = allBooks.length
       
-      // 如果书籍数量不足4本，就全部展示
       if (totalBooks <= 4) {
         recommendBooks.value = allBooks
       } else {
-        // 随机选择4本不重复的书
         const selectedIndices = new Set()
         while (selectedIndices.size < 4) {
           const randomIndex = Math.floor(Math.random() * totalBooks)
@@ -124,12 +97,6 @@ const handleSearch = () => {
   })
 }
 
-// 页面变化
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-  fetchBooks()
-}
-
 // 添加到购物车
 const addToCart = async (bookId: number) => {
   try {
@@ -170,9 +137,8 @@ const checkLoginStatus = async () => {
       credentials: 'include'
     })
     const data = await response.json()
-    if (data.code === 1006) { // 假设1006是已登录状态码
+    if (data.code === 200) { 
       isLoggedIn.value = true
-      // 从localStorage获取用户名
       const userInfo = localStorage.getItem('userInfo')
       if (userInfo) {
         username.value = JSON.parse(userInfo).username
@@ -184,9 +150,9 @@ const checkLoginStatus = async () => {
 }
 
 onMounted(() => {
-  fetchTopBooks() // 获取销量前三的书
-  fetchRecommendBooks() // 获取随机推荐的书
-  fetchNewBooks() // 获取最新的书
+  fetchTopBooks() 
+  fetchRecommendBooks() 
+  fetchNewBooks() 
   checkLoginStatus()
 })
 </script>
@@ -198,7 +164,7 @@ onMounted(() => {
         <div class="main_header">
           <el-row :gutter="20" class="main-header" type="flex" align="middle">
             <el-col :span="6">
-              <img class="logo" src="/logo.png" alt="Logo" />
+              <img class="logo" src="/logo.png" alt="Logo" >
             </el-col>
 
             <el-col :span="13">
@@ -227,16 +193,21 @@ onMounted(() => {
             <el-button type="text" @click="navigateTo('/books')">查看更多 ></el-button>
           </div>
           <el-row :gutter="20">
-            <el-col :span="6" v-for="book in recommendBooks" :key="book?.id">
+            <el-col v-for="book in recommendBooks" :key="book?.id" :span="6">
               <el-card class="book-card" shadow="hover" @click="book?.id && navigateToDetail(book.id)">
-                <img :src="book?.cover || '/default-book.jpg'" class="book-cover" />
+                <img :src="book?.cover || '/default-book.jpg'" class="book-cover"  alt="">
                 <div class="book-info">
                   <h3 class="book-title">{{ book?.title }}</h3>
                   <p class="book-author">{{ book?.author || book?.writer }}</p>
                   <div class="book-price-row">
                     <span class="book-price">￥{{ book?.price ? book.price.toFixed(2) : '0.00' }}</span>
-                    <el-button type="primary" size="small" circle @click.stop="book?.id && addToCart(book.id)"
-                      :icon="ShoppingCart"></el-button>
+                    <el-button
+                        type="primary"
+                        size="small"
+                        circle
+                        :icon="ShoppingCart"
+                        @click.stop="book?.id && addToCart(book.id)"
+                    />
                   </div>
                 </div>
               </el-card>
@@ -251,16 +222,21 @@ onMounted(() => {
             <el-button type="text" @click="navigateTo('/books')">查看更多 ></el-button>
           </div>
           <el-row :gutter="20">
-            <el-col :span="6" v-for="book in newBooks" :key="book?.id">
+            <el-col v-for="book in newBooks" :key="book?.id" :span="6">
               <el-card class="book-card" shadow="hover" @click="book?.id && navigateToDetail(book.id)">
-                <img :src="book?.cover || '/default-book.jpg'" class="book-cover" />
+                <img :src="book?.cover || '/default-book.jpg'" class="book-cover"  alt="">
                 <div class="book-info">
                   <h3 class="book-title">{{ book?.title }}</h3>
                   <p class="book-author">{{ book?.author || book?.writer }}</p>
                   <div class="book-price-row">
                     <span class="book-price">￥{{ book?.price ? book.price.toFixed(2) : '0.00' }}</span>
-                    <el-button type="primary" size="small" circle @click.stop="book?.id && addToCart(book.id)"
-                      :icon="ShoppingCart"></el-button>
+                    <el-button
+                        type="primary"
+                        size="small"
+                        circle
+                        :icon="ShoppingCart"
+                        @click.stop="book?.id && addToCart(book.id)"
+                    />
                   </div>
                 </div>
               </el-card>

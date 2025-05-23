@@ -1,7 +1,5 @@
 package com.zwj.backend.entity;
 
-//import com.alibaba.fastjson2.JSONObject;
-//import com.alibaba.fastjson2.JSONWriter;
 import lombok.Data;
 
 @Data
@@ -28,7 +26,4 @@ public class Result<T> {
         return new Result<>(code, data, message);
     }
 
-//    public String asJsonString() {
-//        return JSONObject.from(this, JSONWriter.Feature.WriteNulls).toString();
-//    }
 }

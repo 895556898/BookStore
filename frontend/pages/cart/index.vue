@@ -85,8 +85,8 @@
               type="danger"
               size="small"
               circle
-              @click="removeItem(scope.row.id)"
               title="删除"
+              @click="removeItem(scope.row.id)"
             >
               <el-icon><Delete /></el-icon>
             </el-button>
@@ -118,7 +118,6 @@
       </div>
     </div>
     
-    <!-- 确认删除对话框 -->
     <el-dialog
       v-model="showDeleteConfirm"
       title="确认删除"
@@ -136,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
@@ -156,16 +155,12 @@ const selectAll = ref(false)
 // 删除相关状态
 const showDeleteConfirm = ref(false)
 const deleteConfirmMessage = ref('')
-const deleteType = ref('') // 'single'/'selected'/'all'
+const deleteType = ref('')
 const deleteItemId = ref(null)
 
-// API 基础URL
 const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
 
-/**
- * 获取认证请求头
- * @returns {Object} 包含认证信息的请求头
- */
+//获取请求头
 const getAuthHeaders = () => {
   const headers = {
     'Content-Type': 'application/json',
@@ -180,16 +175,12 @@ const getAuthHeaders = () => {
   return headers
 }
 
-/**
- * 检查登录状态并加载购物车
- */
+//检查登录
 const checkLoginStatus = async () => {
-  // 初始化用户状态 - 从localStorage恢复
   if (!userStore.isLoggedIn) {
     userStore.initUserFromStorage()
   }
 
-  // 检查用户是否已登录
   if (userStore.isLoggedIn && userStore.user) {
     isLoggedIn.value = true
     await fetchCartItems()
@@ -199,9 +190,7 @@ const checkLoginStatus = async () => {
   loading.value = false
 }
 
-/**
- * 获取购物车列表
- */
+//获取购物车
 const fetchCartItems = async () => {
   loading.value = true
   try {
@@ -212,7 +201,6 @@ const fetchCartItems = async () => {
     })
     
     if (!response.ok) {
-      // 检查是否未授权
       if (response.status === 401 || response.status === 403) {
         isLoggedIn.value = false
         loading.value = false
@@ -237,10 +225,7 @@ const fetchCartItems = async () => {
   }
 }
 
-/**
- * 修改商品数量
- * @param {Object} item 要修改的购物车项
- */
+//修改购物车
 const handleQuantityChange = async (item) => {
   try {
     const response = await fetch(`${baseUrl.value}/api/cart/update/${item.id}?quantity=${item.quantity}`, {
@@ -252,7 +237,7 @@ const handleQuantityChange = async (item) => {
     
     if (result.code !== 200) {
       ElMessage.error(result.message || '修改数量失败')
-      fetchCartItems() // 刷新购物车
+      fetchCartItems()
     }
   } catch (error) {
     console.error('修改数量失败:', error)
@@ -260,10 +245,7 @@ const handleQuantityChange = async (item) => {
   }
 }
 
-/**
- * 删除单个商品
- * @param {number} itemId 要删除的商品ID
- */
+//删除购物车商品
 const removeItem = (itemId) => {
   deleteItemId.value = itemId
   deleteType.value = 'single'
@@ -271,9 +253,6 @@ const removeItem = (itemId) => {
   showDeleteConfirm.value = true
 }
 
-/**
- * 删除选中商品
- */
 const removeSelected = () => {
   if (selectedItems.value.length === 0) {
     ElMessage.warning('请先选择要删除的商品')
@@ -285,9 +264,7 @@ const removeSelected = () => {
   showDeleteConfirm.value = true
 }
 
-/**
- * 清空购物车
- */
+//清空购物车
 const clearCart = () => {
   if (cartItems.value.length === 0) {
     ElMessage.warning('购物车已经是空的了')
@@ -299,22 +276,18 @@ const clearCart = () => {
   showDeleteConfirm.value = true
 }
 
-/**
- * 确认删除操作
- */
+// 确认删除
 const confirmDelete = async () => {
   try {
     let response;
     
     if (deleteType.value === 'single') {
-      // 删除单个商品
       response = await fetch(`${baseUrl.value}/api/cart/remove/${deleteItemId.value}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: getAuthHeaders()
       })
     } else if (deleteType.value === 'selected') {
-      // 删除选中的商品 - 循环删除每个选中项
       const selectedIds = selectedItems.value.map(item => item.id)
       for (const id of selectedIds) {
         await fetch(`${baseUrl.value}/api/cart/remove/${id}`, {
@@ -338,7 +311,7 @@ const confirmDelete = async () => {
       ElMessage.error(result.message || '删除失败')
     } else {
       ElMessage.success('删除成功')
-      fetchCartItems() // 刷新购物车列表
+      fetchCartItems()
     }
   } catch (error) {
     console.error('删除失败:', error)
@@ -348,20 +321,12 @@ const confirmDelete = async () => {
   }
 }
 
-/**
- * 计算商品小计金额
- * @param {Object} item 购物车项
- * @returns {number} 小计金额
- */
+// 计算金额
 const calculateSubtotal = (item) => {
   const price = item.book?.price || 0
   return price * item.quantity
 }
 
-/**
- * 计算选中商品总价
- * @returns {number} 总价金额
- */
 const calculateTotal = () => {
   let total = 0
   selectedItems.value.forEach(item => {
@@ -370,19 +335,12 @@ const calculateTotal = () => {
   return total
 }
 
-/**
- * 处理表格选择变化
- * @param {Array} selection 当前选中的项
- */
 const handleSelectionChange = (selection) => {
   selectedItems.value = selection
   selectAll.value = selection.length === cartItems.value.length && cartItems.value.length > 0
 }
 
-/**
- * 全选/取消全选
- * @param {boolean} val 是否全选
- */
+//全选
 const toggleSelectAll = (val) => {
   const table = document.querySelector('.el-table__body-wrapper table')
   const checkboxes = table.querySelectorAll('.el-checkbox__input')
@@ -396,29 +354,22 @@ const toggleSelectAll = (val) => {
   })
 }
 
-/**
- * 跳转到商品详情页
- * @param {number} bookId 书籍ID
- */
+// 跳转商品详情页
 const navigateToBook = (bookId) => {
   router.push(`/books/${bookId}`)
 }
 
-/**
- * 前往结算页面
- */
+// 结算
 const checkout = () => {
   if (selectedItems.value.length === 0) {
     ElMessage.warning('请选择要结算的商品')
     return
   }
   
-  // 保存选中的商品到localStorage，以便结算页面使用
   localStorage.setItem('checkoutItems', JSON.stringify(selectedItems.value))
   router.push('/checkout')
 }
 
-// 页面加载时执行
 onMounted(() => {
   checkLoginStatus()
 })

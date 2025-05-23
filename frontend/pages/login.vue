@@ -69,7 +69,6 @@
 </template>
 
 <script setup>
-// import { ref } from 'vue'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
 
@@ -90,7 +89,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入用户名'))
         } else {
@@ -103,7 +102,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (rule, value, callback) => {
+      validator: (value, callback) => {
         if (!value) {
           callback(new Error('请输入密码'))
         } else {
@@ -114,7 +113,6 @@ const loginRules = ref({
   ]
 })
 
-// 定义后端API基础URL
 const baseUrl = ref(process.env.BASE_URL || 'http://localhost:8080')
 
 // 处理登录逻辑
@@ -126,22 +124,19 @@ const handleLogin = async () => {
       try {
         loading.value = true
         
-        // 准备表单数据
         const formData = new URLSearchParams()
         formData.append('username', loginForm.value.username)
         formData.append('password', loginForm.value.password)
         
-        // 发送登录请求
         const response = await $fetch(`${baseUrl.value}/api/user/login`, {
           method: 'POST',
           body: formData,
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           },
-          // 添加CORS相关设置
-          credentials: 'include',  // 包含凭据（cookies等）
-          mode: 'cors',            // 指定CORS模式
-          retry: 0                 // 不重试，避免重复请求
+          credentials: 'include',
+          mode: 'cors',
+          retry: 0
         })
         
         // 处理登录成功
@@ -151,13 +146,10 @@ const handleLogin = async () => {
           // 保存用户信息到store
           userStore.setUser(response.data)
 
-          // 提示用户
           ElMessage.success('登录成功')
           
-          // 跳转到首页
           navigateTo('/')
         } else {
-          // 显示错误提示
           errorMessage.value = response?.message || '登录失败，请检查用户名和密码'
           errorDialogVisible.value = true
         }
@@ -180,7 +172,7 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f2f5;  // 浅灰色背景
+  background-color: #f0f2f5;
 
   .login-box {
     width: 450px;
@@ -212,18 +204,6 @@ const handleLogin = async () => {
   }
 }
 
-// 调整级联选择器样式
-:deep(.el-cascader) {
-  width: 100%;
-
-  .el-input__inner {
-    height: 40px;
-  }
-
-  .el-icon-arrow-down {
-    display: none;  // 隐藏下拉箭头
-  }
-}
 .user-type-group {
   width: 100%;
 

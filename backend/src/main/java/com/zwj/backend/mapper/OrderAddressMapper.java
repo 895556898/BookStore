@@ -6,5 +6,5 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface OrderAddressMapper extends BaseMapper<OrderAddress> {
-    // 可以添加自定义方法
+
 } 

@@ -147,8 +147,8 @@
           <el-button 
             type="danger" 
             size="large" 
-            @click="submitOrder"
             :loading="submitting"
+            @click="submitOrder"
           >
             提交订单
           </el-button>
@@ -170,7 +170,7 @@
         <div class="payment-qr-code">
           <p>请使用{{ getPaymentMethodText() }}扫描下方二维码完成支付</p>
           <div class="qr-code">
-            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"></el-image>
+            <el-image src="/qrcode-demo.jpg" style="width: 200px; height: 200px;"/>
           </div>
         </div>
       </div>
@@ -232,7 +232,7 @@ const addressRules = {
   ]
 }
 
-// 示例的地区数据(实际项目中应该从API获取)
+// 简化地区数据
 const regionOptions = [
   {
     value: '110000',
@@ -300,13 +300,11 @@ const getCheckoutItems = () => {
 
 // 提交订单
 const submitOrder = async () => {
-  // 验证表单
   if (!addressFormRef.value) {
     ElMessage.warning('表单引用不存在')
     return
   }
   
-  // 验证表单
   let formValid = false
   await addressFormRef.value.validate((valid) => {
     formValid = valid
@@ -320,7 +318,6 @@ const submitOrder = async () => {
   if (checkoutItems.value.length === 0) {
     ElMessage.warning('没有可结算的商品')
     console.log('当前结算商品:', checkoutItems.value)
-    // 尝试重新获取
     getCheckoutItems()
     if (checkoutItems.value.length === 0) {
       return
@@ -330,13 +327,11 @@ const submitOrder = async () => {
   submitting.value = true
   
   try {
-    // 构建订单请求参数
     const items = checkoutItems.value.map(item => ({
       bookId: item.book.id,
       quantity: item.quantity
     }))
     
-    // 构建地址信息
     const addressInfo = {
       receiver: addressForm.value.receiver,
       phone: addressForm.value.phone,
@@ -344,11 +339,6 @@ const submitOrder = async () => {
       detailAddress: addressForm.value.detailAddress,
       zipCode: addressForm.value.zipCode
     }
-
-    //构建用户信息
-    console.log(userStore)
-    console.log('————————————')
-    console.log(userStore.user)
     
     const orderRequest = {
       items: items,
@@ -375,7 +365,7 @@ const submitOrder = async () => {
     if (result.code === 200) {
       // 订单创建成功
       createdOrderId.value = result.data.id
-      localStorage.removeItem('checkoutItems') // 清除结算商品
+      localStorage.removeItem('checkoutItems')
       ElMessage.success('订单创建成功')
       
       // 跳转到订单详情页展示订单信息
@@ -398,8 +388,7 @@ const submitOrder = async () => {
 const getPaymentMethodText = () => {
   const methods = {
     'WECHAT': '微信支付',
-    'ALIPAY': '支付宝',
-    'BANK_CARD': '银行卡'
+    'ALIPAY': '支付宝'
   }
   return methods[paymentMethod.value] || '未知支付方式'
 }
