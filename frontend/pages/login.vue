@@ -89,7 +89,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (value, callback) => {
+      validator: (rule, value, callback) => {
         if (!value) {
           callback(new Error('请输入用户名'))
         } else {
@@ -102,7 +102,7 @@ const loginRules = ref({
     {
       required: true,
       trigger: 'blur',
-      validator: (value, callback) => {
+      validator: (rule, value, callback) => {
         if (!value) {
           callback(new Error('请输入密码'))
         } else {
