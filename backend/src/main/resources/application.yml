@@ -1,9 +1,9 @@
 # DataSource Config
 spring:
   datasource:
-    url: jdbc:mysql://112.124.20.183:3306/BookStore?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: vKQ8G3eC
+    url:
+    username:
+    password:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       # 连接池最大连接数
@@ -30,4 +30,4 @@ spring:
 
 # 自定义文件上传目录
 file:
-  upload-dir: ${user.home}/IdeaProjects/BookStore/frontend/public/covers
+  upload-dir:
